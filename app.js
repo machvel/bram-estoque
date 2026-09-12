@@ -297,6 +297,7 @@ async function atualizarStatusRequisicao(requisicaoId) {
     : relevantes.some((i) => i.status === 'Parc.' || i.status === 'Concluído')
     ? 'Em andamento'
     : 'Aberta';
+  if (status === requisicao.status) return; // nada mudou — não enfileira de novo
   requisicao.status = status;
   await BramDB.put('requisicoes', requisicao);
   await BramDB.enfileirar('requisicoes', 'upsert', requisicao);

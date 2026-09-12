@@ -112,6 +112,11 @@ async function tamanhoFila() {
   return itens.length;
 }
 
+async function limparFila() {
+  const itens = await getAll('fila');
+  for (const item of itens) await del('fila', item.id);
+}
+
 window.BramDB = {
   abrirDB,
   getAll,
@@ -120,5 +125,6 @@ window.BramDB = {
   del,
   enfileirar,
   tamanhoFila,
+  limparFila,
   STORES,
 };

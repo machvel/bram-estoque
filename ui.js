@@ -813,6 +813,15 @@ document.getElementById('btnPuxarServidor').addEventListener('click', async () =
   }
 });
 
+document.getElementById('btnLimparFila').addEventListener('click', async () => {
+  const quantos = await BramDB.tamanhoFila();
+  if (quantos === 0) { mostrarMensagem('msgSync', 'A fila já está vazia.', 'ok'); return; }
+  if (!confirm(`Isso vai apagar ${quantos} alteração(ões) pendente(s) de envio, sem tentar enviar pra planilha. Use isso só se a fila estiver travada. Continuar?`)) return;
+  await BramDB.limparFila();
+  mostrarMensagem('msgSync', 'Fila pendente limpa.', 'ok');
+  await atualizarStatusConexao();
+});
+
 // ---------- Inicialização ----------
 
 (async function iniciar() {

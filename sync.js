@@ -112,13 +112,10 @@ async function puxarDoServidor() {
   for (const registro of dados.estoque || []) await BramDB.put('estoque', normalizarIdFluig(registro));
   for (const registro of dados.movimentos || []) await BramDB.put('movimentos', normalizarIdFluig(registro));
   // Cabeçalho da requisição e itens agora vêm prontos, cada um da sua aba —
-  // não precisa mais reconstruir nada localmente.
+  // não precisa mais reconstruir nada localmente, nem recalcular status
+  // (o status "PEDIDO STATUS" já vem certo direto da planilha).
   for (const registro of dados.requisicoes || []) await BramDB.put('requisicoes', registro);
   for (const registro of dados.itensStatus || []) await BramDB.put('itensStatus', normalizarIdFluig(registro));
-
-  for (const requisicao of dados.requisicoes || []) {
-    if (window.BramApp) await window.BramApp.atualizarStatusRequisicao(requisicao.id);
-  }
 
   return dados;
 }
