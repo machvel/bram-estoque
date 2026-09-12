@@ -202,6 +202,29 @@ async function adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem, quanti
   return item;
 }
 
+// Corrige um item já adicionado (código, descrição ou quantidade errados),
+// sem precisar cancelar/excluir e criar de novo.
+async function editarItemRequisicao({ itemId, idFluig, nomeItem, quantidadeSolicitada }) {
+  const item = await BramDB.get('itensStatus', itemId);
+  if (!item) throw new Error('Item não encontrado.');
+  quantidadeSolicitada = paraInteiro(quantidadeSolicitada);
+  if (quantidadeSolicitada < item.qtdeRecebida) {
+    throw new Error(`Não é possível colocar uma quantidade menor que a já recebida (${item.qtdeRecebida}).`);
+  }
+
+  const itemEstoque = await obterOuCriarEstoque(idFluig, nomeItem);
+  await BramDB.put('estoque', itemEstoque);
+  await BramDB.enfileirar('estoque', 'upsert', itemEstoque);
+
+  item.idFluig = idFluig;
+  item.nomeItem = nomeItem || itemEstoque.nome;
+  item.quantidadeSolicitada = quantidadeSolicitada;
+  item.status = item.qtdeRecebida >= quantidadeSolicitada && item.qtdeRecebida > 0 ? 'Concluído' : item.qtdeRecebida > 0 ? 'Parc.' : 'Aberto';
+  await BramDB.put('itensStatus', item);
+  await BramDB.enfileirar('itensStatus', 'upsert', item);
+  return item;
+}
+
 // Recebimento (total ou parcial) de um item de requisição.
 async function receberItemRequisicao({ itemId, quantidadeAgora, local, prateleira, coluna, linha }) {
   const item = await BramDB.get('itensStatus', itemId);
@@ -298,6 +321,7 @@ window.BramApp = {
   excluirRequisicao,
   definirStatusRequisicao,
   adicionarItemRequisicao,
+  editarItemRequisicao,
   receberItemRequisicao,
   cancelarItemRequisicao,
   atualizarStatusRequisicao,

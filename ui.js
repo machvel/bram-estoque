@@ -607,7 +607,7 @@ async function renderRequisicoes() {
     ${requisicoes.map((r) => renderCardRequisicao(r, todosItens)).join('')}
   `;
 
-  ligarEventosRequisicoes(container);
+  ligarEventosRequisicoes(container, todosItens);
 }
 
 function renderCardRequisicao(r, todosItens) {
@@ -663,11 +663,12 @@ function renderCardRequisicao(r, todosItens) {
               <span>${i.nomeItem}</span>
               <span class="chip ${chipStatus(i.status)}">${i.status}</span>
             </div>
-            ${i.status !== 'Concluído' && i.status !== 'Cancelado' ? `
-              <div class="tabela-itens-req-acoes">
+            <div class="tabela-itens-req-acoes">
+              <button class="botao botao-texto btn-editar-item" data-item="${i.id}">Editar</button>
+              ${i.status !== 'Concluído' && i.status !== 'Cancelado' ? `
                 <button class="botao botao-texto btn-receber" data-item="${i.id}">Receber</button>
-                <button class="botao botao-perigo-texto btn-cancelar" data-item="${i.id}">Cancelar</button>
-              </div>` : ''}
+                <button class="botao botao-perigo-texto btn-cancelar" data-item="${i.id}">Cancelar</button>` : ''}
+            </div>
           `).join('')}
         </div>
 
@@ -689,7 +690,7 @@ function renderCardRequisicao(r, todosItens) {
     </div>`;
 }
 
-function ligarEventosRequisicoes(container) {
+function ligarEventosRequisicoes(container, todosItens) {
   container.querySelectorAll('.req-cabecalho--clicavel').forEach((btn) => {
     btn.addEventListener('click', () => {
       const corpo = btn.nextElementSibling;
@@ -751,7 +752,30 @@ function ligarEventosRequisicoes(container) {
 
   container.querySelectorAll('.btn-abrir-add-item').forEach((btn) => {
     btn.addEventListener('click', () => {
-      btn.nextElementSibling.classList.toggle('oculto-flex');
+      const form = btn.nextElementSibling;
+      form.classList.toggle('oculto-flex');
+      if (!form.classList.contains('oculto-flex') && !form.dataset.editando) {
+        form.querySelector('.in-idfluig').value = '';
+        form.querySelector('.in-nome').value = '';
+        form.querySelector('.in-qtd').value = '';
+        form.querySelector('.btn-add-item').textContent = 'Salvar';
+      }
+    });
+  });
+
+  container.querySelectorAll('.btn-editar-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.card-requisicao');
+      const item = todosItens.find((i) => i.id === btn.dataset.item);
+      if (!item) return;
+      const form = card.querySelector('.form-item-inline');
+      form.dataset.editando = item.id;
+      form.classList.remove('oculto-flex');
+      form.querySelector('.in-idfluig').value = item.idFluig;
+      form.querySelector('.in-nome').value = item.nomeItem;
+      form.querySelector('.in-qtd').value = item.quantidadeSolicitada;
+      form.querySelector('.btn-add-item').textContent = 'Salvar edição';
+      form.scrollIntoView({ block: 'nearest' });
     });
   });
 
@@ -770,12 +794,19 @@ function ligarEventosRequisicoes(container) {
   container.querySelectorAll('.btn-add-item').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const card = btn.closest('.card-requisicao');
+      const form = btn.closest('.form-item-inline');
       const requisicaoId = card.dataset.req;
       const idFluig = card.querySelector('.in-idfluig').value.trim();
       const nome = card.querySelector('.in-nome').value.trim();
       const qtd = card.querySelector('.in-qtd').value;
+      const editandoItemId = form.dataset.editando;
       try {
-        await BramApp.adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem: nome, quantidadeSolicitada: qtd });
+        if (editandoItemId) {
+          await BramApp.editarItemRequisicao({ itemId: editandoItemId, idFluig, nomeItem: nome, quantidadeSolicitada: qtd });
+          delete form.dataset.editando;
+        } else {
+          await BramApp.adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem: nome, quantidadeSolicitada: qtd });
+        }
         await renderRequisicoes();
         await renderEstoque();
         await atualizarStatusConexao();
