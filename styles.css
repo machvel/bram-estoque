@@ -755,3 +755,73 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   }
   .btn-fechar-req-corpo { display: block; width: 100%; margin-bottom: 14px; }
 }
+
+#modalDetalheItem .sheet-caixa { position: relative; }
+
+/* ---------- Detalhe do item: layout com ADICIONAR/RETIRAR em destaque
+   e campos empilhados (rótulo em cima, valor embaixo) ---------- */
+.detalhe-acoes-topo {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  margin: 4px 0 22px;
+}
+.detalhe-acao-grande {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+.detalhe-acao-icone {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primaria);
+  color: #fff;
+  font-size: 1.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.detalhe-acao-grande:disabled .detalhe-acao-icone { background: var(--divisor); }
+.detalhe-acao-rotulo {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--texto-fraco);
+}
+.sheet-caixa-escura .detalhe-acao-rotulo { color: #9AA0A6; }
+
+.campo-detalhe-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--divisor);
+}
+.campo-detalhe-vertical .rotulo { font-size: 0.72rem; color: var(--texto-fraco); }
+.campo-detalhe-vertical .valor { font-size: 1rem; font-weight: 500; }
+.sheet-caixa-escura .campo-detalhe-vertical { border-bottom-color: #2A2A2A; }
+.sheet-caixa-escura .campo-detalhe-vertical .rotulo { color: #9AA0A6; }
+.sheet-caixa-escura .campo-detalhe-vertical .valor { color: #fff; }
+
+.fab-editar-detalhe {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primaria);
+  color: #fff;
+  font-size: 1.2rem;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 5;
+}

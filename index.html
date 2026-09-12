@@ -281,29 +281,34 @@
         <div id="detalheAvatar" class="detalhe-avatar oculto-flex"></div>
       </div>
 
-      <div class="detalhe-linha"><span>ID. Fluig</span><strong id="detalheCodigo"></strong></div>
-      <div class="detalhe-linha"><span>Item</span><strong id="detalheNome"></strong></div>
-      <div class="detalhe-linha"><span>Marca</span><strong id="detalheMarca"></strong></div>
-      <div class="detalhe-linha"><span>P/N</span><strong id="detalhePn"></strong></div>
-      <div class="detalhe-linha"><span>Item Crítico</span><strong id="detalheItemCritico"></strong></div>
-      <div class="detalhe-linha"><span>Local</span><strong id="detalheLocal"></strong></div>
-      <div class="detalhe-linha"><span>Prateleira</span><strong id="detalhePrateleira"></strong></div>
-      <div class="detalhe-linha"><span>Coluna</span><strong id="detalheColuna"></strong></div>
-      <div class="detalhe-linha"><span>Linha</span><strong id="detalheLinha"></strong></div>
-      <div class="detalhe-linha detalhe-linha-qtde">
-        <span>Qtde</span>
-        <span class="stepper-inline">
-          <button type="button" class="botao-stepper-mini" id="btnDiminuir" aria-label="Diminuir">−</button>
-          <strong id="detalheQuantidade">0</strong>
-          <button type="button" class="botao-stepper-mini" id="btnAumentar" aria-label="Aumentar">+</button>
-        </span>
+      <div class="detalhe-acoes-topo">
+        <button type="button" class="detalhe-acao-grande" id="btnAumentar">
+          <span class="detalhe-acao-icone">+</span>
+          <span class="detalhe-acao-rotulo">ADICIONAR</span>
+        </button>
+        <button type="button" class="detalhe-acao-grande" id="btnDiminuir">
+          <span class="detalhe-acao-icone">−</span>
+          <span class="detalhe-acao-rotulo">RETIRAR</span>
+        </button>
       </div>
-      <div class="detalhe-linha"><span>Observação</span><strong id="detalheObs"></strong></div>
+
+      <div class="campo-detalhe-vertical"><span class="rotulo">Item</span><strong class="valor" id="detalheNome"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Marca</span><strong class="valor" id="detalheMarca"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">P/N</span><strong class="valor" id="detalhePn"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">ID Fluig</span><strong class="valor" id="detalheCodigo"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Item Crítico</span><strong class="valor" id="detalheItemCritico"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Local</span><strong class="valor" id="detalheLocal"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Prateleira</span><strong class="valor" id="detalhePrateleira"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Linha</span><strong class="valor" id="detalheLinha"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Coluna</span><strong class="valor" id="detalheColuna"></strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Qtd</span><strong class="valor" id="detalheQuantidade">0</strong></div>
+      <div class="campo-detalhe-vertical"><span class="rotulo">Observação</span><strong class="valor" id="detalheObs"></strong></div>
       <p class="mensagem" id="msgDetalheItem"></p>
 
-      <button type="button" class="botao botao-texto" id="btnEditarDetalhes" style="width:100%">Editar local / prateleira / foto</button>
-      <button type="button" class="botao botao-perigo-texto" id="btnExcluirItemEstoque" style="width:100%">Excluir item do estoque</button>
+      <button type="button" class="botao botao-perigo-texto" id="btnExcluirItemEstoque" style="width:100%; margin-top:12px">Excluir item do estoque</button>
       <button type="button" class="botao botao-bloco" id="btnFecharDetalheItem" style="margin-top:8px">Fechar</button>
+
+      <button type="button" class="fab-editar-detalhe" id="btnEditarDetalhes" aria-label="Editar item">✎</button>
     </div>
   </div>
 
