@@ -88,29 +88,13 @@ async function puxarDoServidor() {
 
   for (const registro of dados.estoque || []) await BramDB.put('estoque', normalizarIdFluig(registro));
   for (const registro of dados.movimentos || []) await BramDB.put('movimentos', normalizarIdFluig(registro));
+  // Cabeçalho da requisição e itens agora vêm prontos, cada um da sua aba —
+  // não precisa mais reconstruir nada localmente.
+  for (const registro of dados.requisicoes || []) await BramDB.put('requisicoes', registro);
   for (const registro of dados.itensStatus || []) await BramDB.put('itensStatus', normalizarIdFluig(registro));
 
-  // A planilha real não tem uma aba própria de "cabeçalho" da requisição —
-  // cada item já carrega solicitante/tipo/data. Reconstrói os cabeçalhos
-  // localmente agrupando os itens por requisicaoId (campo "REQ").
-  const cabecalhosPorId = {};
-  for (const item of dados.itensStatus || []) {
-    if (!item.requisicaoId) continue;
-    if (!cabecalhosPorId[item.requisicaoId]) {
-      cabecalhosPorId[item.requisicaoId] = {
-        id: item.requisicaoId,
-        solicitante: item.solicitante || '',
-        tipo: item.tipoRequisicao || '',
-        data: item.dataRequisicao || '',
-        status: 'Aberta',
-      };
-    }
-  }
-  for (const requisicao of Object.values(cabecalhosPorId)) {
-    await BramDB.put('requisicoes', requisicao);
-  }
-  for (const requisicaoId of Object.keys(cabecalhosPorId)) {
-    if (window.BramApp) await window.BramApp.atualizarStatusRequisicao(requisicaoId);
+  for (const requisicao of dados.requisicoes || []) {
+    if (window.BramApp) await window.BramApp.atualizarStatusRequisicao(requisicao.id);
   }
 
   return dados;

@@ -131,12 +131,14 @@ async function excluirItemEstoque(idFluig) {
 // tipoReq: 'Pedido' | 'Desembarque' | 'Cadastro'
 // tipo (só relevante quando tipoReq === 'Pedido'): 'OPERAÇÃO' | 'MANUTENÇÃO'
 
-async function criarRequisicao({ solicitante, tipoReq, tipo }) {
+async function criarRequisicao({ solicitante, tipoReq, tipo, helm }) {
+  const ehPedidoManutencao = tipoReq === 'Pedido' && tipo === 'MANUTENÇÃO';
   const req = {
     id: uid(),
     solicitante: solicitante || '',
     tipoReq: tipoReq || 'Pedido',
     tipo: tipoReq === 'Pedido' ? (tipo || 'OPERAÇÃO') : '',
+    helm: ehPedidoManutencao ? (helm || '') : '',
     data: new Date().toISOString(),
     status: 'Aberta',
   };
@@ -169,7 +171,7 @@ async function excluirRequisicao(requisicaoId) {
   await BramDB.enfileirar('requisicoes', 'delete', { id: requisicaoId });
 }
 
-async function adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem, quantidadeSolicitada, helm }) {
+async function adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem, quantidadeSolicitada }) {
   const requisicao = await BramDB.get('requisicoes', requisicaoId);
   if (!requisicao) throw new Error('Requisição não encontrada.');
   quantidadeSolicitada = paraInteiro(quantidadeSolicitada);
@@ -197,13 +199,6 @@ async function adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem, quanti
     quantidadeAgora: 0,
     status: 'Aberto', // Aberto | Parc. | Concluído | Cancelado
     dataFinalizada: '',
-    helm: ehPedidoManutencao ? (helm || '') : '',
-    // Dados da requisição "pai" copiados aqui porque, na planilha real,
-    // cada item já carrega essas informações na própria linha.
-    solicitante: requisicao.solicitante,
-    tipoRequisicao: requisicao.tipo,
-    tipoReq: requisicao.tipoReq,
-    dataRequisicao: requisicao.data,
   };
   await BramDB.put('itensStatus', item);
   await BramDB.enfileirar('itensStatus', 'upsert', item);

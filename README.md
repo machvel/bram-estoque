@@ -22,21 +22,29 @@ Diferente da primeira versão, este app não cria uma planilha nova — ele lê 
 escreve direto nas suas abas existentes:
 
 - **Estoque**: usa as colunas `IDFluig`, `Item`, `Qtd`, `Local`,
-  `Prateleira`, `Coluna`, `Linha`, `P/N`, `Marca` e `OBS`. Só `Cod. Barra`
-  e `Item Crítico` continuam do jeito que você preenche manualmente — o
-  app nunca mexe nelas.
-- **requisição**: usa `idMaterial`, `REQ`, `SOLICITANTE`,
-  `OPERAÇÕES / MANUTEÇÃO`, `TIPO DE REQ.`, `DATA`, `PEDIDO STATUS`,
-  `DATA FINALIZADA`, `Fluig` e `HELM`. As colunas `Link`, `OBS`, `P/N`, `cod
-  barra` continuam manuais.
-- **itens status**: usa `Material`, `Fluig`, `Item`, `Status`, `Qtde`,
-  `Data Recebimento` e a coluna nova `Qtde Recebida` (veja abaixo).
+  `Prateleira`, `Coluna`, `Linha`, `P/N`, `Marca`, `OBS` e `Item Crítico`.
+  Só `Cod. Barra` continua do jeito que você preenche manualmente — o
+  app nunca mexe nela.
+- **requisição** (1 linha por REQUISIÇÃO INTEIRA — o cabeçalho): usa
+  `idMaterial`, `SOLICITANTE`, `TIPO DE REQ.`, `DATA`,
+  `OPERAÇÕES / MANUTEÇÃO`, `HELM`, `PEDIDO STATUS` e `DATA FINALIZADA`.
+  As colunas `REQ`, `Link`, `OBS`, `Fluig`, `P/N`, `cod barra` continuam
+  manuais.
+- **itens status** (1 linha por ITEM da requisição — uma requisição pode
+  ter vários itens, todos apontando pro mesmo `idMaterial` através do
+  campo `Material`): usa `Material`, `Fluig`, `Item`, `Status`, `Qtde`,
+  `Data Recebimento` e as colunas novas `Qtde Recebida` e `ID Item`
+  (veja abaixo).
 
-### Antes de configurar: adicione 1 coluna
+### Antes de configurar: adicione 2 colunas
 
-Na aba **"itens status"**, adicione uma coluna nova chamada exatamente
-**`Qtde Recebida`** (em qualquer posição). É nela que o app guarda quanto
-já foi recebido de cada item, permitindo recebimento parcial.
+Na aba **"itens status"**, adicione duas colunas novas (em qualquer
+posição, ficam em branco que o app preenche sozinho):
+
+- **`Qtde Recebida`** — guarda quanto já foi recebido de cada item,
+  permitindo recebimento parcial.
+- **`ID Item`** — identifica cada item de forma única. Sem ela, o app não
+  consegue diferenciar itens repetidos numa mesma requisição.
 
 ### Exclusão de itens e requisições
 
@@ -58,8 +66,9 @@ Desembarque ou Cadastro. Só quando é **Pedido** aparece a escolha extra de
 Operação/Manutenção (que controla se o item mexe no estoque). Desembarque
 e Cadastro nunca mexem no estoque automaticamente.
 
-Ao adicionar um item numa requisição do tipo Pedido + Manutenção, aparece
-um campo **Nº HELM** — fica salvo na coluna HELM da aba "requisição".
+Ao criar uma requisição do tipo Pedido + Manutenção, aparece um campo
+**Nº HELM** (da requisição inteira, não de cada item) — fica salvo na
+coluna HELM da aba "requisição".
 
 ### Local e Prateleira são listas fixas
 

@@ -471,8 +471,14 @@ document.getElementById('movIdFluig').addEventListener('input', preencherNomePor
 function atualizarVisibilidadeTipo() {
   const mostra = document.getElementById('reqTipoReq').value === 'Pedido';
   document.getElementById('campoReqTipo').style.display = mostra ? '' : 'none';
+  atualizarVisibilidadeHelm();
+}
+function atualizarVisibilidadeHelm() {
+  const ehPedidoManutencao = document.getElementById('reqTipoReq').value === 'Pedido' && document.getElementById('reqTipo').value === 'MANUTENÇÃO';
+  document.getElementById('campoReqHelm').style.display = ehPedidoManutencao ? '' : 'none';
 }
 document.getElementById('reqTipoReq').addEventListener('change', atualizarVisibilidadeTipo);
+document.getElementById('reqTipo').addEventListener('change', atualizarVisibilidadeHelm);
 atualizarVisibilidadeTipo();
 
 document.getElementById('formRequisicao').addEventListener('submit', async (evt) => {
@@ -482,6 +488,7 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
       solicitante: document.getElementById('reqSolicitante').value.trim(),
       tipoReq: document.getElementById('reqTipoReq').value,
       tipo: document.getElementById('reqTipo').value,
+      helm: document.getElementById('reqHelm').value.trim(),
     });
     mostrarMensagem('msgRequisicao', 'Requisição criada.', 'ok');
     evt.target.reset();
@@ -530,20 +537,19 @@ async function renderRequisicoes() {
 
   container.innerHTML = requisicoes.map((r) => {
     const itens = todosItens.filter((i) => i.requisicaoId === r.id);
-    const ehPedidoManutencao = r.tipoReq === 'Pedido' && r.tipo === 'MANUTENÇÃO';
     const tituloTipo = r.tipoReq === 'Pedido' ? `Pedido · ${r.tipo === 'MANUTENÇÃO' ? 'Manutenção' : 'Operação'}` : (r.tipoReq || 'Pedido');
     return `
     <div class="card-requisicao ${bordaRequisicao(r.status)}" data-req="${r.id}">
       <div class="req-cabecalho">
         <div>
           <div class="req-titulo">${r.solicitante || '(sem nome)'} · ${tituloTipo}</div>
-          <div class="req-data">${fmtData(r.data)}</div>
+          <div class="req-data">${fmtData(r.data)}${r.helm ? ` · HELM ${r.helm}` : ''}</div>
         </div>
         <span class="chip ${chipStatus(r.status)}">${r.status}</span>
       </div>
       ${itens.map((i) => `
         <div class="item-req-linha" data-item="${i.id}">
-          <span>${i.nomeItem} — ${i.qtdeRecebida}/${i.quantidadeSolicitada}${i.helm ? ` · HELM ${i.helm}` : ''}</span>
+          <span>${i.nomeItem} — ${i.qtdeRecebida}/${i.quantidadeSolicitada}</span>
           <span class="chip ${chipStatus(i.status)}">${i.status}</span>
           <span class="acoes">
             ${i.status !== 'Concluído' && i.status !== 'Cancelado' ? `
@@ -557,7 +563,6 @@ async function renderRequisicoes() {
           <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
         </span>
         <input type="text" class="in-nome campo-linha-inteira" placeholder="Descrição" />
-        ${ehPedidoManutencao ? '<input type="text" class="in-helm campo-linha-inteira" placeholder="Nº HELM" />' : ''}
         <input type="number" class="in-qtd campo-linha-inteira" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
         <button class="botao btn-add-item">+ item</button>
       </div>
@@ -588,10 +593,8 @@ async function renderRequisicoes() {
       const idFluig = card.querySelector('.in-idfluig').value.trim();
       const nome = card.querySelector('.in-nome').value.trim();
       const qtd = card.querySelector('.in-qtd').value;
-      const helmInput = card.querySelector('.in-helm');
-      const helm = helmInput ? helmInput.value.trim() : '';
       try {
-        await BramApp.adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem: nome, quantidadeSolicitada: qtd, helm });
+        await BramApp.adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem: nome, quantidadeSolicitada: qtd });
         await renderRequisicoes();
         await renderEstoque();
         await atualizarStatusConexao();
