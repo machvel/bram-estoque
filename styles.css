@@ -863,6 +863,18 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
     padding: 0 16px;
     margin-bottom: 2px;
   }
+  .req-col-ordenavel {
+    background: none;
+    border: none;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    text-align: left;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+  .req-col-ordenavel:hover { color: var(--primaria); }
   .req-col-num { font-weight: 600; color: var(--primaria-escura); }
   .req-linha-tabela--cabecalho .req-col-num { color: var(--texto-fraco); }
   .req-col-itens { color: var(--texto-fraco); font-size: 0.76rem; }

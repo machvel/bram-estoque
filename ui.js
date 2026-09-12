@@ -565,6 +565,7 @@ function grupoStatusRequisicao(status) {
 let filtroStatusAtual = 'abertas';
 let requisicaoAbertaId = null; // qual card continua expandido entre re-renderizações
 let formItemAbertoId = null; // em qual card o formulário de +item continua visível
+let ordenacaoManual = null; // { campo: 'reqNumero' | 'data', direcao: 'asc' | 'desc' } — null = ordenação padrão por tipo
 const NOMES_FILTRO = { todas: 'Todas', abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
 
 async function renderRequisicoes() {
@@ -598,6 +599,14 @@ async function renderRequisicoes() {
   const requisicoes = todasRequisicoes
     .filter((r) => filtroStatusAtual === 'todas' || grupoStatusRequisicao(r.status) === filtroStatusAtual)
     .sort((a, b) => {
+      if (ordenacaoManual) {
+        const { campo, direcao } = ordenacaoManual;
+        let valorA = campo === 'reqNumero' ? Number(a.reqNumero) || 0 : a.data;
+        let valorB = campo === 'reqNumero' ? Number(b.reqNumero) || 0 : b.data;
+        if (valorA === valorB) return 0;
+        const maior = valorA > valorB ? 1 : -1;
+        return direcao === 'asc' ? maior : -maior;
+      }
       const ordemA = ORDEM_TIPO_REQ[a.tipoReq] ?? 99;
       const ordemB = ORDEM_TIPO_REQ[b.tipoReq] ?? 99;
       if (ordemA !== ordemB) return ordemA - ordemB;
@@ -615,7 +624,7 @@ async function renderRequisicoes() {
   const linhasComCabecalho = requisicoes.map((r) => {
     const tipoAtual = r.tipoReq || 'Pedido';
     let cabecalhoTipo = '';
-    if (tipoAtual !== tipoAnterior) {
+    if (!ordenacaoManual && tipoAtual !== tipoAnterior) {
       const quantos = requisicoes.filter((x) => (x.tipoReq || 'Pedido') === tipoAtual).length;
       cabecalhoTipo = `<div class="subcabecalho-tipo-req">${NOMES_TIPO_REQ[tipoAtual] || tipoAtual} (${quantos})</div>`;
       tipoAnterior = tipoAtual;
@@ -623,12 +632,17 @@ async function renderRequisicoes() {
     return cabecalhoTipo + renderCardRequisicao(r, todosItens);
   }).join('');
 
+  const setaOrdenacao = (campo) => {
+    if (!ordenacaoManual || ordenacaoManual.campo !== campo) return '';
+    return ordenacaoManual.direcao === 'asc' ? ' ▲' : ' ▼';
+  };
+
   container.innerHTML = `
     <div class="req-linha-tabela req-linha-tabela--cabecalho oculto-mobile">
-      <span class="req-col req-col-num">REQ</span>
+      <button type="button" class="req-col req-col-num req-col-ordenavel" data-ordenar="reqNumero">REQ${setaOrdenacao('reqNumero')}</button>
       <span class="req-col req-col-nome">Solicitante</span>
       <span class="req-col req-col-tipo">Tipo</span>
-      <span class="req-col req-col-data">Data</span>
+      <button type="button" class="req-col req-col-data req-col-ordenavel" data-ordenar="data">Data${setaOrdenacao('data')}</button>
       <span class="req-col req-col-itens">Itens</span>
     </div>
     ${linhasComCabecalho}
@@ -720,6 +734,18 @@ function renderCardRequisicao(r, todosItens) {
 }
 
 function ligarEventosRequisicoes(container, todosItens) {
+  container.querySelectorAll('.req-col-ordenavel').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const campo = btn.dataset.ordenar;
+      if (ordenacaoManual && ordenacaoManual.campo === campo) {
+        ordenacaoManual = ordenacaoManual.direcao === 'asc' ? { campo, direcao: 'desc' } : null;
+      } else {
+        ordenacaoManual = { campo, direcao: 'asc' };
+      }
+      renderRequisicoes();
+    });
+  });
+
   container.querySelectorAll('.req-cabecalho--clicavel').forEach((btn) => {
     btn.addEventListener('click', () => {
       const card = btn.closest('.card-requisicao');
