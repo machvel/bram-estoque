@@ -148,6 +148,17 @@ async function criarRequisicao({ solicitante, tipoReq, tipo, helm, reqNumero }) 
   return req;
 }
 
+// Ação rápida: marca a requisição inteira como concluída ou cancelada
+// diretamente (sem mexer nos itens um por um).
+async function definirStatusRequisicao(requisicaoId, novoStatus) {
+  const requisicao = await BramDB.get('requisicoes', requisicaoId);
+  if (!requisicao) throw new Error('Requisição não encontrada.');
+  requisicao.status = novoStatus;
+  requisicao.dataFinalizada = new Date().toISOString();
+  await BramDB.put('requisicoes', requisicao);
+  await BramDB.enfileirar('requisicoes', 'upsert', requisicao);
+}
+
 async function excluirRequisicao(requisicaoId) {
   const requisicao = await BramDB.get('requisicoes', requisicaoId);
   if (!requisicao) throw new Error('Requisição não encontrada.');
@@ -311,6 +322,7 @@ window.BramApp = {
   migrarDuplicadosEstoque,
   criarRequisicao,
   excluirRequisicao,
+  definirStatusRequisicao,
   adicionarItemRequisicao,
   receberItemRequisicao,
   cancelarItemRequisicao,

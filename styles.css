@@ -857,3 +857,25 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   .req-linha-tabela--cabecalho .req-col-num { color: var(--texto-fraco); }
   .req-col-itens { color: var(--texto-fraco); font-size: 0.76rem; }
 }
+
+/* ---------- Tabela de itens dentro do detalhe da requisição ---------- */
+.tabela-itens-req { margin-top: 8px; font-size: 0.82rem; }
+.tabela-itens-req-linha {
+  display: grid;
+  grid-template-columns: 1.1fr 0.7fr 1.8fr 0.9fr;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divisor);
+  align-items: center;
+}
+.sheet-caixa-escura .tabela-itens-req-linha { border-bottom-color: #2A2A2A; }
+.tabela-itens-req-cabecalho {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+  border-bottom-color: var(--texto-fraco);
+}
+.sheet-caixa-escura .tabela-itens-req-cabecalho { color: #9AA0A6; }
+.tabela-itens-req-acoes { display: flex; gap: 6px; justify-content: flex-end; padding: 0 0 8px; border-bottom: 1px solid var(--divisor); }
+.sheet-caixa-escura .tabela-itens-req-acoes { border-bottom-color: #2A2A2A; }

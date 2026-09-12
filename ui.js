@@ -611,16 +611,45 @@ function renderCardRequisicao(r, todosItens) {
       </button>
       <div class="req-corpo oculto-flex">
         <button type="button" class="botao btn-fechar-req-corpo botao-linha-inteira-desktop">Fechar</button>
-        ${itens.map((i) => `
-          <div class="item-req-linha" data-item="${i.id}">
-            <span>${i.nomeItem} — ${i.qtdeRecebida}/${i.quantidadeSolicitada}</span>
-            <span class="chip ${chipStatus(i.status)}">${i.status}</span>
-            <span class="acoes">
-              ${i.status !== 'Concluído' && i.status !== 'Cancelado' ? `
+
+        <div class="detalhe-acoes-topo">
+          <button type="button" class="detalhe-acao-grande btn-concluir-req" data-req="${r.id}">
+            <span class="detalhe-acao-icone">👍</span>
+            <span class="detalhe-acao-rotulo">CONCLUIR<br>${(r.tipoReq || 'PEDIDO').toUpperCase()}</span>
+          </button>
+          <button type="button" class="detalhe-acao-grande btn-cancelar-req" data-req="${r.id}">
+            <span class="detalhe-acao-icone">🚫</span>
+            <span class="detalhe-acao-rotulo">CANCELAR<br>${(r.tipoReq || 'PEDIDO').toUpperCase()}</span>
+          </button>
+        </div>
+
+        <div class="campo-detalhe-vertical"><span class="rotulo">REQ</span><strong class="valor">${r.reqNumero || '—'}</strong></div>
+        <div class="campo-detalhe-vertical"><span class="rotulo">Solicitante</span><strong class="valor">${r.solicitante || '(sem nome)'}</strong></div>
+        <div class="campo-detalhe-vertical"><span class="rotulo">Tipo de req.</span><strong class="valor">${tituloTipo}</strong></div>
+        <div class="campo-detalhe-vertical"><span class="rotulo">Data</span><strong class="valor">${fmtData(r.data)}</strong></div>
+        <div class="campo-detalhe-vertical"><span class="rotulo">Pedido status</span><strong class="valor">${r.status}</strong></div>
+        ${r.helm ? `<div class="campo-detalhe-vertical"><span class="rotulo">HELM</span><strong class="valor">${r.helm}</strong></div>` : ''}
+
+        <div class="lista-cabecalho" style="margin-top:16px"><h2>Itens relacionados (${itens.length})</h2></div>
+        <div class="tabela-itens-req">
+          <div class="tabela-itens-req-linha tabela-itens-req-cabecalho">
+            <span>Fluig</span><span>Qtde</span><span>Item</span><span>Status</span>
+          </div>
+          ${itens.map((i) => `
+            <div class="tabela-itens-req-linha" data-item="${i.id}">
+              <span>${i.idFluig}</span>
+              <span>${i.qtdeRecebida}/${i.quantidadeSolicitada}</span>
+              <span>${i.nomeItem}</span>
+              <span class="chip ${chipStatus(i.status)}">${i.status}</span>
+            </div>
+            ${i.status !== 'Concluído' && i.status !== 'Cancelado' ? `
+              <div class="tabela-itens-req-acoes">
                 <button class="botao botao-texto btn-receber" data-item="${i.id}">Receber</button>
-                <button class="botao botao-perigo-texto btn-cancelar" data-item="${i.id}">Cancelar</button>` : ''}
-            </span>
-          </div>`).join('')}
+                <button class="botao botao-perigo-texto btn-cancelar" data-item="${i.id}">Cancelar</button>
+              </div>` : ''}
+          `).join('')}
+        </div>
+
         <div class="form-item-inline">
           <span class="campo-com-scan campo-linha-inteira">
             <input type="text" class="in-idfluig" placeholder="Código" />
@@ -656,6 +685,23 @@ function ligarEventosRequisicoes(container) {
 
   container.querySelectorAll('.btn-fechar-req-corpo').forEach((btn) => {
     btn.addEventListener('click', () => btn.closest('.req-corpo').classList.add('oculto-flex'));
+  });
+
+  container.querySelectorAll('.btn-concluir-req').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Marcar esta requisição inteira como concluída?')) return;
+      await BramApp.definirStatusRequisicao(btn.dataset.req, 'Concluído');
+      await renderRequisicoes();
+      await atualizarStatusConexao();
+    });
+  });
+  container.querySelectorAll('.btn-cancelar-req').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Cancelar esta requisição inteira?')) return;
+      await BramApp.definirStatusRequisicao(btn.dataset.req, 'Cancelado');
+      await renderRequisicoes();
+      await atualizarStatusConexao();
+    });
   });
 
   container.querySelectorAll('.btn-scan-item').forEach((btn) => {
