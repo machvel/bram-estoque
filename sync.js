@@ -3,8 +3,13 @@
 
 const CHAVE_URL_BACKEND = 'bram_backend_url';
 
+// URL padrão já configurada — qualquer aparelho novo usa essa automaticamente,
+// sem precisar colar nada na aba Sincronizar. Se um dia trocar de planilha/
+// implantação, é só atualizar essa linha aqui (e reidistribuir o app).
+const URL_BACKEND_PADRAO = 'https://script.google.com/macros/s/AKfycbwos3Iq_YjiF0p35qjegtyyfEC4rZizGsKngcN9qSMP8y8Oi1FjN2iou_zrrRUCo0jCbg/exec';
+
 function getBackendUrl() {
-  return localStorage.getItem(CHAVE_URL_BACKEND) || '';
+  return localStorage.getItem(CHAVE_URL_BACKEND) || URL_BACKEND_PADRAO;
 }
 
 function setBackendUrl(url) {
