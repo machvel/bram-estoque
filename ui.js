@@ -522,10 +522,19 @@ async function preencherNomePorCodigoRequisicao(card) {
   if (item) nomeCampo.value = item.nome;
 }
 
+function grupoStatusRequisicao(status) {
+  const s = (status || '').toLowerCase();
+  if (s.indexOf('cancel') !== -1) return 'canceladas';
+  if (s.indexOf('conclu') !== -1) return 'concluidas';
+  return 'abertas';
+}
+
+let gruposAbertos = { abertas: true, concluidas: false, canceladas: false };
+
 async function renderRequisicoes() {
   const filtro = (document.getElementById('buscaRequisicoes').value || '').toLowerCase();
   const requisicoes = (await BramDB.getAll('requisicoes'))
-    .filter((r) => !filtro || String(r.solicitante || '').toLowerCase().includes(filtro))
+    .filter((r) => !filtro || String(r.solicitante || '').toLowerCase().includes(filtro) || String(r.reqNumero || '').toLowerCase().includes(filtro))
     .sort((a, b) => (a.data < b.data ? 1 : -1));
   const todosItens = await BramDB.getAll('itensStatus');
   const container = document.getElementById('listaRequisicoes');
@@ -535,40 +544,80 @@ async function renderRequisicoes() {
     return;
   }
 
-  container.innerHTML = requisicoes.map((r) => {
-    const itens = todosItens.filter((i) => i.requisicaoId === r.id);
-    const tituloTipo = r.tipoReq === 'Pedido' ? `Pedido · ${r.tipo === 'MANUTENÇÃO' ? 'Manutenção' : 'Operação'}` : (r.tipoReq || 'Pedido');
+  const grupos = { abertas: [], concluidas: [], canceladas: [] };
+  requisicoes.forEach((r) => grupos[grupoStatusRequisicao(r.status)].push(r));
+
+  const NOMES_GRUPO = { abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
+
+  container.innerHTML = Object.keys(NOMES_GRUPO).map((chave) => {
+    const lista = grupos[chave];
+    if (lista.length === 0) return '';
+    const aberto = gruposAbertos[chave];
     return `
-    <div class="card-requisicao ${bordaRequisicao(r.status)}" data-req="${r.id}">
-      <div class="req-cabecalho">
-        <div>
-          <div class="req-titulo">${r.solicitante || '(sem nome)'} · ${tituloTipo}</div>
-          <div class="req-data">${fmtData(r.data)}${r.helm ? ` · HELM ${r.helm}` : ''}</div>
-        </div>
-        <span class="chip ${chipStatus(r.status)}">${r.status}</span>
-      </div>
-      ${itens.map((i) => `
-        <div class="item-req-linha" data-item="${i.id}">
-          <span>${i.nomeItem} — ${i.qtdeRecebida}/${i.quantidadeSolicitada}</span>
-          <span class="chip ${chipStatus(i.status)}">${i.status}</span>
-          <span class="acoes">
-            ${i.status !== 'Concluído' && i.status !== 'Cancelado' ? `
-              <button class="botao botao-texto btn-receber" data-item="${i.id}">Receber</button>
-              <button class="botao botao-perigo-texto btn-cancelar" data-item="${i.id}">Cancelar</button>` : ''}
-          </span>
-        </div>`).join('')}
-      <div class="form-item-inline">
-        <span class="campo-com-scan">
-          <input type="text" class="in-idfluig" placeholder="Código" />
-          <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
-        </span>
-        <input type="text" class="in-nome campo-linha-inteira" placeholder="Descrição" />
-        <input type="number" class="in-qtd campo-linha-inteira" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
-        <button class="botao btn-add-item">+ item</button>
-      </div>
-      <button type="button" class="botao botao-perigo-texto btn-excluir-requisicao" style="width:100%; margin-top:8px">Excluir requisição</button>
+    <button type="button" class="grupo-requisicao-cabecalho" data-grupo="${chave}">
+      <span>${NOMES_GRUPO[chave]} (${lista.length})</span>
+      <span class="seta-grupo ${aberto ? 'aberta' : ''}">▾</span>
+    </button>
+    <div class="grupo-requisicao-corpo ${aberto ? '' : 'oculto-flex'}">
+      ${lista.map((r) => renderCardRequisicao(r, todosItens)).join('')}
     </div>`;
   }).join('');
+
+  ligarEventosRequisicoes(container);
+}
+
+function renderCardRequisicao(r, todosItens) {
+  const itens = todosItens.filter((i) => i.requisicaoId === r.id);
+  const tituloTipo = r.tipoReq === 'Pedido' ? `Pedido · ${r.tipo === 'MANUTENÇÃO' ? 'Manutenção' : 'Operação'}` : (r.tipoReq || 'Pedido');
+  const numero = r.reqNumero ? `REQ ${r.reqNumero}` : '';
+  return `
+    <div class="card-requisicao ${bordaRequisicao(r.status)}" data-req="${r.id}">
+      <button type="button" class="req-cabecalho req-cabecalho--clicavel">
+        <div>
+          <div class="req-titulo">${[numero, r.solicitante || '(sem nome)', tituloTipo].filter(Boolean).join(' · ')}</div>
+          <div class="req-data">${fmtData(r.data)}${r.helm ? ` · HELM ${r.helm}` : ''} · ${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</div>
+        </div>
+        <span class="chip ${chipStatus(r.status)}">${r.status}</span>
+      </button>
+      <div class="req-corpo oculto-flex">
+        ${itens.map((i) => `
+          <div class="item-req-linha" data-item="${i.id}">
+            <span>${i.nomeItem} — ${i.qtdeRecebida}/${i.quantidadeSolicitada}</span>
+            <span class="chip ${chipStatus(i.status)}">${i.status}</span>
+            <span class="acoes">
+              ${i.status !== 'Concluído' && i.status !== 'Cancelado' ? `
+                <button class="botao botao-texto btn-receber" data-item="${i.id}">Receber</button>
+                <button class="botao botao-perigo-texto btn-cancelar" data-item="${i.id}">Cancelar</button>` : ''}
+            </span>
+          </div>`).join('')}
+        <div class="form-item-inline">
+          <span class="campo-com-scan">
+            <input type="text" class="in-idfluig" placeholder="Código" />
+            <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
+          </span>
+          <input type="text" class="in-nome campo-linha-inteira" placeholder="Descrição" />
+          <input type="number" class="in-qtd campo-linha-inteira" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
+          <button class="botao btn-add-item">+ item</button>
+        </div>
+        <button type="button" class="botao botao-perigo-texto btn-excluir-requisicao" style="width:100%; margin-top:8px">Excluir requisição</button>
+      </div>
+    </div>`;
+}
+
+function ligarEventosRequisicoes(container) {
+  container.querySelectorAll('.grupo-requisicao-cabecalho').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const chave = btn.dataset.grupo;
+      gruposAbertos[chave] = !gruposAbertos[chave];
+      renderRequisicoes();
+    });
+  });
+
+  container.querySelectorAll('.req-cabecalho--clicavel').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.nextElementSibling.classList.toggle('oculto-flex');
+    });
+  });
 
   container.querySelectorAll('.btn-scan-item').forEach((btn) => {
     btn.addEventListener('click', () => {

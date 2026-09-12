@@ -233,8 +233,37 @@ main.telas { flex: 1; padding: 14px 14px 90px; }
 .card-requisicao.borda-alerta { border-left-color: var(--alerta); }
 .card-requisicao.borda-perigo { border-left-color: var(--perigo); }
 .req-cabecalho { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.req-cabecalho--clicavel {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--sans);
+  padding: 0;
+}
+.req-corpo { margin-top: 10px; }
 .req-titulo { font-size: 0.92rem; font-weight: 500; }
 .req-data { font-size: 0.74rem; color: var(--texto-fraco); margin-top: 2px; }
+
+.grupo-requisicao-cabecalho {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: none;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--texto-fraco);
+  padding: 10px 2px 6px;
+  cursor: pointer;
+}
+.seta-grupo { transition: transform 0.15s; display: inline-block; }
+.seta-grupo.aberta { transform: rotate(180deg); }
+.grupo-requisicao-corpo { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.grupo-requisicao-corpo.oculto-flex { display: none; }
 
 .chip {
   font-size: 0.68rem;
