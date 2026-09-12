@@ -596,6 +596,7 @@ function renderCardRequisicao(r, todosItens) {
         <span class="chip ${chipStatus(r.status)}">${r.status}</span>
       </button>
       <div class="req-corpo oculto-flex">
+        <button type="button" class="botao btn-fechar-req-corpo botao-linha-inteira-desktop">Fechar</button>
         ${itens.map((i) => `
           <div class="item-req-linha" data-item="${i.id}">
             <span>${i.nomeItem} — ${i.qtdeRecebida}/${i.quantidadeSolicitada}</span>
@@ -632,8 +633,15 @@ function ligarEventosRequisicoes(container) {
 
   container.querySelectorAll('.req-cabecalho--clicavel').forEach((btn) => {
     btn.addEventListener('click', () => {
-      btn.nextElementSibling.classList.toggle('oculto-flex');
+      const corpo = btn.nextElementSibling;
+      const vaiAbrir = corpo.classList.contains('oculto-flex');
+      container.querySelectorAll('.req-corpo').forEach((c) => c.classList.add('oculto-flex'));
+      if (vaiAbrir) corpo.classList.remove('oculto-flex');
     });
+  });
+
+  container.querySelectorAll('.btn-fechar-req-corpo').forEach((btn) => {
+    btn.addEventListener('click', () => btn.closest('.req-corpo').classList.add('oculto-flex'));
   });
 
   container.querySelectorAll('.btn-scan-item').forEach((btn) => {

@@ -731,3 +731,27 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   font-size: 1.2rem;
   cursor: pointer;
 }
+
+/* Detalhe da requisição também vira painel fixo na direita no computador,
+   igual o detalhe do item de estoque — em vez de expandir dentro do
+   próprio card. Só um por vez (o JS já garante isso). */
+.btn-fechar-req-corpo { display: none; }
+
+@media (min-width: 860px) {
+  .req-corpo:not(.oculto-flex) {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    max-width: 90vw;
+    margin-top: 0;
+    padding: 60px 16px 16px;
+    background: var(--superficie);
+    border-left: 1px solid var(--divisor);
+    box-shadow: -4px 0 16px rgba(0,0,0,0.15);
+    overflow-y: auto;
+    z-index: 30;
+  }
+  .btn-fechar-req-corpo { display: block; width: 100%; margin-bottom: 14px; }
+}
