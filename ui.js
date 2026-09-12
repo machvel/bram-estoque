@@ -648,7 +648,9 @@ function renderCardRequisicao(r, todosItens) {
           `).join('')}
         </div>
 
-        <div class="form-item-inline">
+        <button type="button" class="botao btn-abrir-add-item" style="width:100%; margin-top:6px">+ Adicionar item</button>
+
+        <div class="form-item-inline oculto-flex">
           <span class="campo-com-scan campo-linha-inteira">
             <input type="text" class="in-idfluig" placeholder="Código" />
             <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
@@ -657,6 +659,7 @@ function renderCardRequisicao(r, todosItens) {
           <button type="button" class="link-cadastrar-item oculto-flex campo-linha-inteira">Item não encontrado no estoque — toque aqui para cadastrar</button>
           <input type="number" class="in-qtd" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
           <button class="botao btn-add-item">+ item</button>
+          <button type="button" class="link-cadastrar-item-sempre campo-linha-inteira">Não achou o item? Cadastrar item novo</button>
         </div>
         <button type="button" class="botao botao-perigo-texto btn-excluir-requisicao" style="width:100%; margin-top:8px">Excluir requisição</button>
       </div>
@@ -716,6 +719,24 @@ function ligarEventosRequisicoes(container) {
       const idFluig = card.querySelector('.in-idfluig').value.trim();
       const nome = card.querySelector('.in-nome').value.trim();
       if (!idFluig) return;
+      definirModoFormMovimento(true);
+      document.getElementById('movIdFluig').value = idFluig;
+      document.getElementById('movNome').value = nome;
+      abrirSheet('modalMovimento');
+    });
+  });
+
+  container.querySelectorAll('.btn-abrir-add-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.nextElementSibling.classList.toggle('oculto-flex');
+    });
+  });
+
+  container.querySelectorAll('.link-cadastrar-item-sempre').forEach((link) => {
+    link.addEventListener('click', () => {
+      const card = link.closest('.card-requisicao');
+      const idFluig = card.querySelector('.in-idfluig').value.trim();
+      const nome = card.querySelector('.in-nome').value.trim();
       definirModoFormMovimento(true);
       document.getElementById('movIdFluig').value = idFluig;
       document.getElementById('movNome').value = nome;

@@ -309,6 +309,16 @@ main.telas { flex: 1; padding: 14px 14px 90px; }
   cursor: pointer;
   font-family: var(--sans);
 }
+.link-cadastrar-item-sempre {
+  background: none;
+  border: none;
+  color: var(--primaria);
+  font-size: 0.78rem;
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--sans);
+  padding: 6px;
+}
 
 /* ---------- Botões ---------- */
 .botao {
