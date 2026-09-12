@@ -29,15 +29,23 @@ async function testarConexaoBackend() {
 }
 
 async function enviarItemFila(url, item) {
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS no Apps Script
-    body: JSON.stringify({
-      tabela: item.tabela,
-      acao: item.acao,
-      registro: item.registro,
-    }),
-  });
+  const controlador = new AbortController();
+  const tempoLimite = setTimeout(() => controlador.abort(), 30000); // 30s por item
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS no Apps Script
+      body: JSON.stringify({
+        tabela: item.tabela,
+        acao: item.acao,
+        registro: item.registro,
+      }),
+      signal: controlador.signal,
+    });
+  } finally {
+    clearTimeout(tempoLimite);
+  }
   if (!resp.ok) throw new Error('Falha ao sincronizar item ' + item.id);
   return resp.json();
 }
