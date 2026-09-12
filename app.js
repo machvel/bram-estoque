@@ -131,10 +131,11 @@ async function excluirItemEstoque(idFluig) {
 // tipoReq: 'Pedido' | 'Desembarque' | 'Cadastro'
 // tipo (só relevante quando tipoReq === 'Pedido'): 'OPERAÇÃO' | 'MANUTENÇÃO'
 
-async function criarRequisicao({ solicitante, tipoReq, tipo, helm }) {
+async function criarRequisicao({ solicitante, tipoReq, tipo, helm, reqNumero }) {
   const ehPedidoManutencao = tipoReq === 'Pedido' && tipo === 'MANUTENÇÃO';
   const req = {
     id: uid(),
+    reqNumero: reqNumero || '',
     solicitante: solicitante || '',
     tipoReq: tipoReq || 'Pedido',
     tipo: tipoReq === 'Pedido' ? (tipo || 'OPERAÇÃO') : '',

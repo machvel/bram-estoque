@@ -485,6 +485,7 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
   evt.preventDefault();
   try {
     await BramApp.criarRequisicao({
+      reqNumero: document.getElementById('reqNumero').value.trim(),
       solicitante: document.getElementById('reqSolicitante').value.trim(),
       tipoReq: document.getElementById('reqTipoReq').value,
       tipo: document.getElementById('reqTipo').value,
