@@ -556,6 +556,8 @@ function grupoStatusRequisicao(status) {
 
 
 let filtroStatusAtual = 'abertas';
+let requisicaoAbertaId = null; // qual card continua expandido entre re-renderizações
+let formItemAbertoId = null; // em qual card o formulário de +item continua visível
 const NOMES_FILTRO = { todas: 'Todas', abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
 
 async function renderRequisicoes() {
@@ -632,6 +634,8 @@ function renderCardRequisicao(r, todosItens) {
   const itens = todosItens.filter((i) => i.requisicaoId === r.id);
   const tituloTipo = r.tipoReq === 'Pedido' ? `Pedido · ${r.tipo === 'MANUTENÇÃO' ? 'Manutenção' : 'Operação'}` : (r.tipoReq || 'Pedido');
   const numero = r.reqNumero ? `REQ ${r.reqNumero}` : '';
+  const estaAberta = requisicaoAbertaId === r.id;
+  const formAberto = formItemAbertoId === r.id;
   return `
     <div class="card-requisicao ${bordaRequisicao(r.status)}" data-req="${r.id}">
       <button type="button" class="req-cabecalho req-cabecalho--clicavel">
@@ -648,7 +652,7 @@ function renderCardRequisicao(r, todosItens) {
         </div>
         <span class="chip ${chipStatus(r.status)}">${r.status}</span>
       </button>
-      <div class="req-corpo oculto-flex">
+      <div class="req-corpo ${estaAberta ? '' : 'oculto-flex'}">
         <button type="button" class="botao btn-fechar-req-corpo botao-linha-inteira-desktop">Fechar</button>
 
         <div class="detalhe-acoes-topo">
@@ -692,7 +696,7 @@ function renderCardRequisicao(r, todosItens) {
 
         <button type="button" class="botao btn-abrir-add-item" style="width:100%; margin-top:6px">+ Adicionar item</button>
 
-        <div class="form-item-inline oculto-flex">
+        <div class="form-item-inline ${formAberto ? '' : 'oculto-flex'}">
           <span class="campo-com-scan campo-linha-inteira">
             <input type="text" class="in-idfluig" placeholder="Código" />
             <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
@@ -711,15 +715,25 @@ function renderCardRequisicao(r, todosItens) {
 function ligarEventosRequisicoes(container, todosItens) {
   container.querySelectorAll('.req-cabecalho--clicavel').forEach((btn) => {
     btn.addEventListener('click', () => {
+      const card = btn.closest('.card-requisicao');
       const corpo = btn.nextElementSibling;
       const vaiAbrir = corpo.classList.contains('oculto-flex');
       container.querySelectorAll('.req-corpo').forEach((c) => c.classList.add('oculto-flex'));
-      if (vaiAbrir) corpo.classList.remove('oculto-flex');
+      requisicaoAbertaId = null;
+      formItemAbertoId = null;
+      if (vaiAbrir) {
+        corpo.classList.remove('oculto-flex');
+        requisicaoAbertaId = card.dataset.req;
+      }
     });
   });
 
   container.querySelectorAll('.btn-fechar-req-corpo').forEach((btn) => {
-    btn.addEventListener('click', () => btn.closest('.req-corpo').classList.add('oculto-flex'));
+    btn.addEventListener('click', () => {
+      btn.closest('.req-corpo').classList.add('oculto-flex');
+      requisicaoAbertaId = null;
+      formItemAbertoId = null;
+    });
   });
 
   container.querySelectorAll('.btn-concluir-req').forEach((btn) => {
@@ -770,9 +784,12 @@ function ligarEventosRequisicoes(container, todosItens) {
 
   container.querySelectorAll('.btn-abrir-add-item').forEach((btn) => {
     btn.addEventListener('click', () => {
+      const card = btn.closest('.card-requisicao');
       const form = btn.nextElementSibling;
       form.classList.toggle('oculto-flex');
-      if (!form.classList.contains('oculto-flex') && !form.dataset.editando) {
+      const abriu = !form.classList.contains('oculto-flex');
+      formItemAbertoId = abriu ? card.dataset.req : null;
+      if (abriu && !form.dataset.editando) {
         form.querySelector('.in-idfluig').value = '';
         form.querySelector('.in-nome').value = '';
         form.querySelector('.in-qtd').value = '';
@@ -789,6 +806,7 @@ function ligarEventosRequisicoes(container, todosItens) {
       const form = card.querySelector('.form-item-inline');
       form.dataset.editando = item.id;
       form.classList.remove('oculto-flex');
+      formItemAbertoId = card.dataset.req;
       form.querySelector('.in-idfluig').value = item.idFluig;
       form.querySelector('.in-nome').value = item.nomeItem;
       form.querySelector('.in-qtd').value = item.quantidadeSolicitada;
