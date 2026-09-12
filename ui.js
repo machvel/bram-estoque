@@ -9,6 +9,11 @@ function irParaAba(aba) {
   document.getElementById('tela-' + aba).classList.remove('oculta');
   document.getElementById('tituloTela').textContent = NOME_TELA[aba];
 
+  // Fecha o painel de detalhe do item (Estoque), se estiver aberto — senão
+  // ele fica flutuando por cima da tela nova, já que é um overlay fixo.
+  document.getElementById('modalDetalheItem').classList.add('oculta');
+  document.querySelector('.app-shell').classList.remove('detalhe-aberto');
+
   const fab = document.getElementById('fabAdicionar');
   fab.classList.toggle('oculto', aba === 'sincronizar' || aba === 'movimentos');
   // No celular, Sincronizar e Últimos movimentos só são acessíveis pelo menu
