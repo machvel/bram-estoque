@@ -523,7 +523,6 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
       const card = document.querySelector(`.card-requisicao[data-req="${novaReq.id}"]`);
       if (card) {
         card.querySelector('.req-cabecalho--clicavel').click();
-        card.querySelector('.btn-abrir-add-item').click();
         card.scrollIntoView({ block: 'nearest' });
       }
     }, 500);
