@@ -596,6 +596,19 @@ async function renderRequisicoes() {
     return;
   }
 
+  const NOMES_TIPO_REQ = { Pedido: 'Pedido', Desembarque: 'Desembarque', Cadastro: 'Cadastro' };
+  let tipoAnterior = null;
+  const linhasComCabecalho = requisicoes.map((r) => {
+    const tipoAtual = r.tipoReq || 'Pedido';
+    let cabecalhoTipo = '';
+    if (tipoAtual !== tipoAnterior) {
+      const quantos = requisicoes.filter((x) => (x.tipoReq || 'Pedido') === tipoAtual).length;
+      cabecalhoTipo = `<div class="subcabecalho-tipo-req">${NOMES_TIPO_REQ[tipoAtual] || tipoAtual} (${quantos})</div>`;
+      tipoAnterior = tipoAtual;
+    }
+    return cabecalhoTipo + renderCardRequisicao(r, todosItens);
+  }).join('');
+
   container.innerHTML = `
     <div class="req-linha-tabela req-linha-tabela--cabecalho oculto-mobile">
       <span class="req-col req-col-num">REQ</span>
@@ -604,7 +617,7 @@ async function renderRequisicoes() {
       <span class="req-col req-col-data">Data</span>
       <span class="req-col req-col-itens">Itens</span>
     </div>
-    ${requisicoes.map((r) => renderCardRequisicao(r, todosItens)).join('')}
+    ${linhasComCabecalho}
   `;
 
   ligarEventosRequisicoes(container, todosItens);

@@ -919,3 +919,14 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   .filtro-status-req { flex: 0 0 130px; }
   .filtro-status-item { font-size: 0.8rem; padding: 10px 10px; }
 }
+
+/* ---------- Subcabeçalho de tipo (Pedido/Desembarque/Cadastro) na lista ---------- */
+.subcabecalho-tipo-req {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--texto-fraco);
+  padding: 12px 2px 6px;
+}
+.subcabecalho-tipo-req:first-child { padding-top: 2px; }
