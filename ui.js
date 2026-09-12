@@ -1036,6 +1036,14 @@ document.getElementById('btnLimparFila').addEventListener('click', async () => {
   await atualizarStatusConexao();
 });
 
+document.getElementById('btnReenviarFotos').addEventListener('click', async () => {
+  if (!confirm('Isso vai reenviar pra planilha todas as fotos de itens já salvas neste aparelho (útil só uma vez, depois de adicionar a coluna "Foto" na planilha). Continuar?')) return;
+  mostrarMensagem('msgSync', 'Reenviando fotos…');
+  const quantas = await BramApp.reenviarFotos();
+  mostrarMensagem('msgSync', quantas === 0 ? 'Nenhuma foto encontrada neste aparelho.' : `${quantas} foto(s) adicionada(s) à fila de envio.`, 'ok');
+  await atualizarStatusConexao();
+});
+
 // ---------- Inicialização ----------
 
 (async function iniciar() {

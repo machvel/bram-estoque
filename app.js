@@ -20,6 +20,18 @@ function contarCamposPreenchidos(item) {
 // planilha (ex: 10603901 vs "10603901") — mesmo item, chaves diferentes.
 // Junta tudo numa única linha, com chave sempre em texto, mantendo os
 // dados mais completos e somando a quantidade de todas as cópias.
+// Ação manual (só quando o usuário pedir): reenfileira pra sincronizar
+// todos os itens de estoque que já têm foto salva neste aparelho, mas que
+// podem ter sido adicionadas antes da coluna "Foto" existir na planilha.
+async function reenviarFotos() {
+  const todos = await BramDB.getAll('estoque');
+  const comFoto = todos.filter((item) => item.foto);
+  for (const item of comFoto) {
+    await BramDB.enfileirar('estoque', 'upsert', item);
+  }
+  return comFoto.length;
+}
+
 async function migrarDuplicadosEstoque() {
   const todos = await BramDB.getAll('estoque');
   const grupos = {};
@@ -317,6 +329,7 @@ window.BramApp = {
   atualizarDadosItem,
   excluirItemEstoque,
   migrarDuplicadosEstoque,
+  reenviarFotos,
   criarRequisicao,
   excluirRequisicao,
   definirStatusRequisicao,
