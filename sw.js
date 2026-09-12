@@ -1,7 +1,11 @@
 // sw.js — guarda os arquivos do app em cache para que ele abra mesmo sem internet.
 // Só os arquivos do app (HTML/CSS/JS) ficam em cache; os dados em si vivem no IndexedDB.
-
-const CACHE_NOME = 'bram-estoque-v1';
+//
+// IMPORTANTE: toda vez que atualizar qualquer arquivo do app (styles.css,
+// ui.js, etc), troque o número aqui embaixo (v2 -> v3 -> v4...). Sem isso,
+// quem já usa o app fica preso na versão antiga guardada em cache, mesmo
+// depois de você subir os arquivos novos no GitHub.
+const CACHE_NOME = 'bram-estoque-v2';
 const ARQUIVOS = [
   './',
   './index.html',
