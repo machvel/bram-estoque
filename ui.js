@@ -340,6 +340,19 @@ document.getElementById('btnDiminuir').addEventListener('click', async () => {
   }
 });
 
+document.getElementById('detalheFoto').addEventListener('click', () => {
+  const src = document.getElementById('detalheFoto').src;
+  if (!src) return;
+  document.getElementById('fotoAmpliadaImg').src = src;
+  document.getElementById('modalFotoAmpliada').classList.remove('oculta');
+});
+document.getElementById('btnFecharFotoAmpliada').addEventListener('click', () => {
+  document.getElementById('modalFotoAmpliada').classList.add('oculta');
+});
+document.getElementById('modalFotoAmpliada').addEventListener('click', (evt) => {
+  if (evt.target.id === 'modalFotoAmpliada') evt.currentTarget.classList.add('oculta');
+});
+
 document.getElementById('btnFecharDetalheItem').addEventListener('click', () => {
   document.getElementById('modalDetalheItem').classList.add('oculta');
   document.querySelector('.app-shell').classList.remove('detalhe-aberto');

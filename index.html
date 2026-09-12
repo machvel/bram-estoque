@@ -268,7 +268,7 @@
     <div class="sheet-caixa sheet-caixa-escura">
       <div class="sheet-alca"></div>
       <div class="detalhe-cabecalho">
-        <img id="detalheFoto" class="detalhe-foto oculto-flex" alt="" />
+        <img id="detalheFoto" class="detalhe-foto detalhe-foto--clicavel oculto-flex" alt="" />
         <div id="detalheAvatar" class="detalhe-avatar oculto-flex"></div>
       </div>
 
@@ -338,6 +338,12 @@
       <button id="modalLocalCancelar" class="botao" style="flex:1">Cancelar</button>
     </div>
   </div>
+</div>
+
+<!-- Visualizador de foto ampliada (mesma imagem, só maior) -->
+<div class="modal foto-ampliada-overlay oculta" id="modalFotoAmpliada">
+  <img id="fotoAmpliadaImg" alt="" />
+  <button type="button" class="foto-ampliada-fechar" id="btnFecharFotoAmpliada" aria-label="Fechar">✕</button>
 </div>
 
 <script src="db.js"></script>

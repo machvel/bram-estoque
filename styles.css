@@ -654,3 +654,32 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   color: #fff;
 }
 .sheet-caixa-escura .foto-preview { border-color: #333; }
+
+/* Visualizador de foto ampliada — mesma imagem já carregada, só exibida
+   maior; não busca nada novo, então não gasta dado extra. */
+.detalhe-foto--clicavel { cursor: pointer; }
+.foto-ampliada-overlay {
+  background: rgba(0,0,0,0.92);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.foto-ampliada-overlay img {
+  max-width: 100%;
+  max-height: 85vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.foto-ampliada-fechar {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
