@@ -825,3 +825,35 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   cursor: pointer;
   z-index: 5;
 }
+
+/* ---------- Lista de requisições em formato de tabela (computador) ---------- */
+.oculto-mobile { display: none; }
+.oculto-desktop { display: block; }
+
+@media (min-width: 860px) {
+  .oculto-mobile { display: flex; }
+  .oculto-desktop { display: none; }
+
+  .req-cabecalho { align-items: center; }
+  .req-linha-tabela {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 90px 1fr 1fr 100px 70px;
+    gap: 10px;
+    align-items: center;
+    text-align: left;
+    font-size: 0.82rem;
+  }
+  .req-linha-tabela--cabecalho {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--texto-fraco);
+    padding: 0 16px;
+    margin-bottom: 2px;
+  }
+  .req-col-num { font-weight: 600; color: var(--primaria-escura); }
+  .req-linha-tabela--cabecalho .req-col-num { color: var(--texto-fraco); }
+  .req-col-itens { color: var(--texto-fraco); font-size: 0.76rem; }
+}

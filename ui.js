@@ -575,6 +575,13 @@ async function renderRequisicoes() {
       <span class="seta-grupo ${aberto ? 'aberta' : ''}">▾</span>
     </button>
     <div class="grupo-requisicao-corpo ${aberto ? '' : 'oculto-flex'}">
+      <div class="req-linha-tabela req-linha-tabela--cabecalho oculto-mobile">
+        <span class="req-col req-col-num">REQ</span>
+        <span class="req-col req-col-nome">Solicitante</span>
+        <span class="req-col req-col-tipo">Tipo</span>
+        <span class="req-col req-col-data">Data</span>
+        <span class="req-col req-col-itens">Itens</span>
+      </div>
       ${lista.map((r) => renderCardRequisicao(r, todosItens)).join('')}
     </div>`;
   }).join('');
@@ -589,9 +596,16 @@ function renderCardRequisicao(r, todosItens) {
   return `
     <div class="card-requisicao ${bordaRequisicao(r.status)}" data-req="${r.id}">
       <button type="button" class="req-cabecalho req-cabecalho--clicavel">
-        <div>
+        <div class="oculto-desktop">
           <div class="req-titulo">${[numero, r.solicitante || '(sem nome)', tituloTipo].filter(Boolean).join(' · ')}</div>
           <div class="req-data">${fmtData(r.data)}${r.helm ? ` · HELM ${r.helm}` : ''} · ${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</div>
+        </div>
+        <div class="req-linha-tabela oculto-mobile">
+          <span class="req-col req-col-num">${r.reqNumero || '—'}</span>
+          <span class="req-col req-col-nome">${r.solicitante || '(sem nome)'}</span>
+          <span class="req-col req-col-tipo">${tituloTipo}</span>
+          <span class="req-col req-col-data">${fmtData(r.data)}</span>
+          <span class="req-col req-col-itens">${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</span>
         </div>
         <span class="chip ${chipStatus(r.status)}">${r.status}</span>
       </button>
