@@ -104,7 +104,7 @@ async function abrirScanner(aoLer) {
     if (encerrado) return;
     dica.textContent = 'Aponte a câmera para o código de barras';
     leitorZXing = new ZXingBrowser.BrowserMultiFormatReader();
-    leitorZXing.decodeFromVideoElement(video, (resultado, erro) => {
+    leitorZXing.decodeFromVideoElementContinuously(video, (resultado, erro) => {
       if (resultado && !encerrado) {
         const valor = resultado.getText();
         encerrar();
