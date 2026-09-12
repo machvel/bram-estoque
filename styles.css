@@ -291,13 +291,12 @@ main.telas { flex: 1; padding: 14px 14px 90px; }
 
 .form-item-inline {
   display: grid;
-  grid-template-columns: 1fr 1.4fr;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px dashed var(--divisor);
 }
-.form-item-inline .btn-add-item,
 .form-item-inline .campo-linha-inteira { grid-column: 1 / -1; }
 .link-cadastrar-item {
   background: #FEF7E0;

@@ -607,13 +607,13 @@ function renderCardRequisicao(r, todosItens) {
             </span>
           </div>`).join('')}
         <div class="form-item-inline">
-          <span class="campo-com-scan">
+          <span class="campo-com-scan campo-linha-inteira">
             <input type="text" class="in-idfluig" placeholder="Código" />
             <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
           </span>
-          <input type="text" class="in-nome" placeholder="Descrição" />
+          <input type="text" class="in-nome campo-linha-inteira" placeholder="Descrição" />
           <button type="button" class="link-cadastrar-item oculto-flex campo-linha-inteira">Item não encontrado no estoque — toque aqui para cadastrar</button>
-          <input type="number" class="in-qtd campo-linha-inteira" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
+          <input type="number" class="in-qtd" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
           <button class="botao btn-add-item">+ item</button>
         </div>
         <button type="button" class="botao botao-perigo-texto btn-excluir-requisicao" style="width:100%; margin-top:8px">Excluir requisição</button>
