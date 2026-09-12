@@ -532,7 +532,9 @@ function grupoStatusRequisicao(status) {
   return 'abertas';
 }
 
-let gruposAbertos = { abertas: true, concluidas: false, canceladas: false };
+
+let filtroStatusAtual = 'abertas';
+const NOMES_FILTRO = { todas: 'Todas', abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
 
 async function renderRequisicoes() {
   const filtro = (document.getElementById('buscaRequisicoes').value || '').toLowerCase();
@@ -550,8 +552,19 @@ async function renderRequisicoes() {
     );
   };
 
-  const requisicoes = (await BramDB.getAll('requisicoes'))
-    .filter(bateFiltro)
+  const todasRequisicoes = (await BramDB.getAll('requisicoes')).filter(bateFiltro);
+
+  const contagens = { todas: todasRequisicoes.length, abertas: 0, concluidas: 0, canceladas: 0 };
+  todasRequisicoes.forEach((r) => { contagens[grupoStatusRequisicao(r.status)]++; });
+  document.querySelectorAll('.filtro-status-item').forEach((btn) => {
+    const chave = btn.dataset.filtro;
+    btn.textContent = `${NOMES_FILTRO[chave]} (${contagens[chave]})`;
+    btn.classList.toggle('ativo', chave === filtroStatusAtual);
+  });
+  document.getElementById('tituloFiltroReq').textContent = NOMES_FILTRO[filtroStatusAtual];
+
+  const requisicoes = todasRequisicoes
+    .filter((r) => filtroStatusAtual === 'todas' || grupoStatusRequisicao(r.status) === filtroStatusAtual)
     .sort((a, b) => (a.data < b.data ? 1 : -1));
   const container = document.getElementById('listaRequisicoes');
 
@@ -560,31 +573,16 @@ async function renderRequisicoes() {
     return;
   }
 
-  const grupos = { abertas: [], concluidas: [], canceladas: [] };
-  requisicoes.forEach((r) => grupos[grupoStatusRequisicao(r.status)].push(r));
-
-  const NOMES_GRUPO = { abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
-
-  container.innerHTML = Object.keys(NOMES_GRUPO).map((chave) => {
-    const lista = grupos[chave];
-    if (lista.length === 0) return '';
-    const aberto = gruposAbertos[chave];
-    return `
-    <button type="button" class="grupo-requisicao-cabecalho" data-grupo="${chave}">
-      <span>${NOMES_GRUPO[chave]} (${lista.length})</span>
-      <span class="seta-grupo ${aberto ? 'aberta' : ''}">▾</span>
-    </button>
-    <div class="grupo-requisicao-corpo ${aberto ? '' : 'oculto-flex'}">
-      <div class="req-linha-tabela req-linha-tabela--cabecalho oculto-mobile">
-        <span class="req-col req-col-num">REQ</span>
-        <span class="req-col req-col-nome">Solicitante</span>
-        <span class="req-col req-col-tipo">Tipo</span>
-        <span class="req-col req-col-data">Data</span>
-        <span class="req-col req-col-itens">Itens</span>
-      </div>
-      ${lista.map((r) => renderCardRequisicao(r, todosItens)).join('')}
-    </div>`;
-  }).join('');
+  container.innerHTML = `
+    <div class="req-linha-tabela req-linha-tabela--cabecalho oculto-mobile">
+      <span class="req-col req-col-num">REQ</span>
+      <span class="req-col req-col-nome">Solicitante</span>
+      <span class="req-col req-col-tipo">Tipo</span>
+      <span class="req-col req-col-data">Data</span>
+      <span class="req-col req-col-itens">Itens</span>
+    </div>
+    ${requisicoes.map((r) => renderCardRequisicao(r, todosItens)).join('')}
+  `;
 
   ligarEventosRequisicoes(container);
 }
@@ -666,14 +664,6 @@ function renderCardRequisicao(r, todosItens) {
 }
 
 function ligarEventosRequisicoes(container) {
-  container.querySelectorAll('.grupo-requisicao-cabecalho').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const chave = btn.dataset.grupo;
-      gruposAbertos[chave] = !gruposAbertos[chave];
-      renderRequisicoes();
-    });
-  });
-
   container.querySelectorAll('.req-cabecalho--clicavel').forEach((btn) => {
     btn.addEventListener('click', () => {
       const corpo = btn.nextElementSibling;
@@ -780,6 +770,13 @@ function ligarEventosRequisicoes(container) {
 }
 
 document.getElementById('buscaRequisicoes').addEventListener('input', renderRequisicoes);
+
+document.getElementById('filtroStatusReq').addEventListener('click', (evt) => {
+  const btn = evt.target.closest('.filtro-status-item');
+  if (!btn) return;
+  filtroStatusAtual = btn.dataset.filtro;
+  renderRequisicoes();
+});
 
 async function renderItensAvulsos() {
   const filtro = (document.getElementById('buscaAvulsos').value || '').trim().toLowerCase();

@@ -879,3 +879,33 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 .sheet-caixa-escura .tabela-itens-req-cabecalho { color: #9AA0A6; }
 .tabela-itens-req-acoes { display: flex; gap: 6px; justify-content: flex-end; padding: 0 0 8px; border-bottom: 1px solid var(--divisor); }
 .sheet-caixa-escura .tabela-itens-req-acoes { border-bottom-color: #2A2A2A; }
+
+/* ---------- Filtro por status na lateral (Requisições) ---------- */
+.requisicoes-corpo { display: flex; gap: 0; }
+.filtro-status-req {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 84px;
+  border-right: 1px solid var(--divisor);
+  padding-right: 8px;
+  margin-right: 12px;
+}
+.filtro-status-item {
+  text-align: left;
+  border: none;
+  background: none;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  color: var(--texto-fraco);
+  padding: 9px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1.25;
+}
+.filtro-status-item.ativo { background: #E8F0FE; color: var(--primaria-escura); font-weight: 600; }
+.requisicoes-lista-area { flex: 1; min-width: 0; }
+
+@media (min-width: 860px) {
+  .filtro-status-req { flex: 0 0 130px; }
+  .filtro-status-item { font-size: 0.8rem; padding: 10px 10px; }
+}

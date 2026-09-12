@@ -47,12 +47,22 @@
 
     <!-- REQUISIÇÕES -->
     <section class="tela oculta" id="tela-requisicoes">
-      <div class="barra-busca">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input type="text" id="buscaRequisicoes" placeholder="Nº requisição, item, ID Fluig ou observação" />
+      <div class="requisicoes-corpo">
+        <nav class="filtro-status-req" id="filtroStatusReq">
+          <button type="button" class="filtro-status-item" data-filtro="todas">Todas</button>
+          <button type="button" class="filtro-status-item ativo" data-filtro="abertas">Abertas</button>
+          <button type="button" class="filtro-status-item" data-filtro="concluidas">Concluídas</button>
+          <button type="button" class="filtro-status-item" data-filtro="canceladas">Canceladas</button>
+        </nav>
+        <div class="requisicoes-lista-area">
+          <div class="barra-busca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input type="text" id="buscaRequisicoes" placeholder="Nº requisição, item, ID Fluig ou observação" />
+          </div>
+          <div class="lista-cabecalho"><h2 id="tituloFiltroReq">Abertas</h2></div>
+          <div class="lista-cards" id="listaRequisicoes"></div>
+        </div>
       </div>
-      <div class="lista-cabecalho"><h2>Requisições</h2></div>
-      <div class="lista-cards" id="listaRequisicoes"></div>
 
       <div class="lista-cabecalho" style="margin-top:22px"><h2>Itens avulsos (histórico)</h2></div>
       <p class="texto-apoio" style="margin:-6px 2px 10px; color:#9AA0A6">Itens antigos do AppSheet sem requisição vinculada.</p>
