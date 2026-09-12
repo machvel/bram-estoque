@@ -165,16 +165,6 @@ async function excluirRequisicao(requisicaoId) {
   const itens = (await BramDB.getAll('itensStatus')).filter((i) => i.requisicaoId === requisicaoId);
 
   for (const item of itens) {
-    // Devolve ao estoque o que estava reservado (Pedido + Manutenção) e ainda não foi usado.
-    if (requisicao.tipoReq === 'Pedido' && requisicao.tipo === 'MANUTENÇÃO' && item.status !== 'Cancelado') {
-      const pendente = item.quantidadeSolicitada - item.qtdeRecebida;
-      if (pendente > 0) {
-        const itemEstoque = await obterOuCriarEstoque(item.idFluig, item.nomeItem);
-        itemEstoque.quantidade += pendente;
-        await BramDB.put('estoque', itemEstoque);
-        await BramDB.enfileirar('estoque', 'upsert', itemEstoque);
-      }
-    }
     await BramDB.del('itensStatus', item.id);
     await BramDB.enfileirar('itensStatus', 'delete', { id: item.id });
   }
@@ -188,18 +178,13 @@ async function adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem, quanti
   if (!requisicao) throw new Error('Requisição não encontrada.');
   quantidadeSolicitada = paraInteiro(quantidadeSolicitada);
 
+  // Requisição é só pedido externo — nunca mexe no estoque de bordo aqui.
+  // Só garante que o item exista na lista de Estoque (com 0 unidades, se for
+  // novo), pra aparecer certinho quando for dar entrada nele manualmente,
+  // ou quando "Receber" (Operação) entrar a quantidade de verdade depois.
   const itemEstoque = await obterOuCriarEstoque(idFluig, nomeItem);
-  const ehPedidoManutencao = requisicao.tipoReq === 'Pedido' && requisicao.tipo === 'MANUTENÇÃO';
-
-  // Pedido de Manutenção: material já sai reservado do estoque no momento do pedido.
-  if (ehPedidoManutencao) {
-    if (itemEstoque.quantidade < quantidadeSolicitada) {
-      throw new Error(`Estoque insuficiente para reservar: há ${itemEstoque.quantidade} ${itemEstoque.unidade}.`);
-    }
-    itemEstoque.quantidade -= quantidadeSolicitada;
-    await BramDB.put('estoque', itemEstoque);
-    await BramDB.enfileirar('estoque', 'upsert', itemEstoque);
-  }
+  await BramDB.put('estoque', itemEstoque);
+  await BramDB.enfileirar('estoque', 'upsert', itemEstoque);
 
   const item = {
     id: uid(),
@@ -279,17 +264,6 @@ async function cancelarItemRequisicao(itemId) {
   const item = await BramDB.get('itensStatus', itemId);
   if (!item) throw new Error('Item não encontrado.');
   const requisicao = await BramDB.get('requisicoes', item.requisicaoId);
-
-  // Devolve ao estoque o que havia sido reservado (Pedido + Manutenção) e não foi usado.
-  if (requisicao.tipoReq === 'Pedido' && requisicao.tipo === 'MANUTENÇÃO' && item.status !== 'Cancelado') {
-    const pendente = item.quantidadeSolicitada - item.qtdeRecebida;
-    if (pendente > 0) {
-      const itemEstoque = await obterOuCriarEstoque(item.idFluig, item.nomeItem);
-      itemEstoque.quantidade += pendente;
-      await BramDB.put('estoque', itemEstoque);
-      await BramDB.enfileirar('estoque', 'upsert', itemEstoque);
-    }
-  }
 
   item.status = 'Cancelado';
   item.dataFinalizada = new Date().toISOString();

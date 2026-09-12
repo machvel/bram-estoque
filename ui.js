@@ -281,6 +281,14 @@ document.getElementById('btnScanBusca').addEventListener('click', () => {
   });
 });
 
+document.getElementById('btnScanBuscaReq').addEventListener('click', () => {
+  BramScanner.abrirScanner((codigo) => {
+    const campo = document.getElementById('buscaRequisicoes');
+    campo.value = codigo;
+    renderRequisicoes();
+  });
+});
+
 // ---------- Detalhe do item + ajuste rápido de quantidade ----------
 
 let itemDetalheAtual = null;
@@ -484,7 +492,7 @@ atualizarVisibilidadeTipo();
 document.getElementById('formRequisicao').addEventListener('submit', async (evt) => {
   evt.preventDefault();
   try {
-    await BramApp.criarRequisicao({
+    const novaReq = await BramApp.criarRequisicao({
       reqNumero: document.getElementById('reqNumero').value.trim(),
       solicitante: document.getElementById('reqSolicitante').value.trim(),
       tipoReq: document.getElementById('reqTipoReq').value,
@@ -496,7 +504,16 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
     atualizarVisibilidadeTipo();
     await renderRequisicoes();
     await atualizarStatusConexao();
-    setTimeout(() => { fecharSheet('modalRequisicao'); mostrarMensagem('msgRequisicao', ''); }, 500);
+    setTimeout(() => {
+      fecharSheet('modalRequisicao');
+      mostrarMensagem('msgRequisicao', '');
+      const card = document.querySelector(`.card-requisicao[data-req="${novaReq.id}"]`);
+      if (card) {
+        card.querySelector('.req-cabecalho--clicavel').click();
+        card.querySelector('.btn-abrir-add-item').click();
+        card.scrollIntoView({ block: 'nearest' });
+      }
+    }, 500);
   } catch (e) {
     mostrarMensagem('msgRequisicao', e.message, 'erro');
   }
@@ -563,9 +580,15 @@ async function renderRequisicoes() {
   });
   document.getElementById('tituloFiltroReq').textContent = NOMES_FILTRO[filtroStatusAtual];
 
+  const ORDEM_TIPO_REQ = { Pedido: 0, Desembarque: 1, Cadastro: 2 };
   const requisicoes = todasRequisicoes
     .filter((r) => filtroStatusAtual === 'todas' || grupoStatusRequisicao(r.status) === filtroStatusAtual)
-    .sort((a, b) => (a.data < b.data ? 1 : -1));
+    .sort((a, b) => {
+      const ordemA = ORDEM_TIPO_REQ[a.tipoReq] ?? 99;
+      const ordemB = ORDEM_TIPO_REQ[b.tipoReq] ?? 99;
+      if (ordemA !== ordemB) return ordemA - ordemB;
+      return a.data < b.data ? 1 : -1;
+    });
   const container = document.getElementById('listaRequisicoes');
 
   if (requisicoes.length === 0) {
@@ -658,7 +681,7 @@ function renderCardRequisicao(r, todosItens) {
           <input type="text" class="in-nome campo-linha-inteira" placeholder="Descrição" />
           <button type="button" class="link-cadastrar-item oculto-flex campo-linha-inteira">Item não encontrado no estoque — toque aqui para cadastrar</button>
           <input type="number" class="in-qtd" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
-          <button class="botao btn-add-item">+ item</button>
+          <button class="botao botao-primario btn-add-item">Salvar</button>
           <button type="button" class="link-cadastrar-item-sempre campo-linha-inteira">Não achou o item? Cadastrar item novo</button>
         </div>
         <button type="button" class="botao botao-perigo-texto btn-excluir-requisicao" style="width:100%; margin-top:8px">Excluir requisição</button>
