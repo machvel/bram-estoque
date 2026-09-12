@@ -518,9 +518,11 @@ function bordaRequisicao(status) {
 async function preencherNomePorCodigoRequisicao(card) {
   const idFluig = card.querySelector('.in-idfluig').value.trim();
   const nomeCampo = card.querySelector('.in-nome');
-  if (!idFluig || nomeCampo.value.trim()) return;
-  const item = await BramDB.get('estoque', idFluig);
-  if (item) nomeCampo.value = item.nome;
+  const linkCadastrar = card.querySelector('.link-cadastrar-item');
+  const item = idFluig ? await BramDB.get('estoque', idFluig) : null;
+
+  if (item && !nomeCampo.value.trim()) nomeCampo.value = item.nome;
+  linkCadastrar.classList.toggle('oculto-flex', !idFluig || !!item);
 }
 
 function grupoStatusRequisicao(status) {
@@ -534,10 +536,23 @@ let gruposAbertos = { abertas: true, concluidas: false, canceladas: false };
 
 async function renderRequisicoes() {
   const filtro = (document.getElementById('buscaRequisicoes').value || '').toLowerCase();
-  const requisicoes = (await BramDB.getAll('requisicoes'))
-    .filter((r) => !filtro || String(r.solicitante || '').toLowerCase().includes(filtro) || String(r.reqNumero || '').toLowerCase().includes(filtro))
-    .sort((a, b) => (a.data < b.data ? 1 : -1));
   const todosItens = await BramDB.getAll('itensStatus');
+
+  const bateFiltro = (r) => {
+    if (!filtro) return true;
+    if (String(r.reqNumero || '').toLowerCase().includes(filtro)) return true;
+    if (String(r.solicitante || '').toLowerCase().includes(filtro)) return true;
+    if (String(r.obs || '').toLowerCase().includes(filtro)) return true;
+    const itensDaReq = todosItens.filter((i) => i.requisicaoId === r.id);
+    return itensDaReq.some((i) =>
+      String(i.nomeItem || '').toLowerCase().includes(filtro) ||
+      String(i.idFluig || '').toLowerCase().includes(filtro)
+    );
+  };
+
+  const requisicoes = (await BramDB.getAll('requisicoes'))
+    .filter(bateFiltro)
+    .sort((a, b) => (a.data < b.data ? 1 : -1));
   const container = document.getElementById('listaRequisicoes');
 
   if (requisicoes.length === 0) {
@@ -596,6 +611,7 @@ function renderCardRequisicao(r, todosItens) {
             <input type="text" class="in-idfluig" placeholder="Código" />
             <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
           </span>
+          <button type="button" class="link-cadastrar-item oculto-flex campo-linha-inteira">Item não encontrado no estoque — toque aqui para cadastrar</button>
           <input type="text" class="in-nome campo-linha-inteira" placeholder="Descrição" />
           <input type="number" class="in-qtd campo-linha-inteira" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
           <button class="botao btn-add-item">+ item</button>
@@ -634,6 +650,19 @@ function ligarEventosRequisicoes(container) {
   container.querySelectorAll('.in-idfluig').forEach((campo) => {
     campo.addEventListener('input', () => preencherNomePorCodigoRequisicao(campo.closest('.card-requisicao')));
     campo.addEventListener('change', () => preencherNomePorCodigoRequisicao(campo.closest('.card-requisicao')));
+  });
+
+  container.querySelectorAll('.link-cadastrar-item').forEach((link) => {
+    link.addEventListener('click', () => {
+      const card = link.closest('.card-requisicao');
+      const idFluig = card.querySelector('.in-idfluig').value.trim();
+      const nome = card.querySelector('.in-nome').value.trim();
+      if (!idFluig) return;
+      definirModoFormMovimento(true);
+      document.getElementById('movIdFluig').value = idFluig;
+      document.getElementById('movNome').value = nome;
+      abrirSheet('modalMovimento');
+    });
   });
 
   container.querySelectorAll('.btn-add-item').forEach((btn) => {

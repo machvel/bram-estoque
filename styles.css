@@ -300,6 +300,17 @@ main.telas { flex: 1; padding: 14px 14px 90px; }
 .form-item-inline .campo-com-scan,
 .form-item-inline .btn-add-item,
 .form-item-inline .campo-linha-inteira { grid-column: 1 / -1; }
+.link-cadastrar-item {
+  background: #FEF7E0;
+  border: 1px dashed var(--alerta);
+  color: #7A4E00;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--sans);
+}
 
 /* ---------- Botões ---------- */
 .botao {

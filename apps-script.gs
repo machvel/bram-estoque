@@ -17,7 +17,8 @@
  *     Prateleira, Coluna, Linha, Qtd
  *     chave: IDFluig
  *
- *   requisição    (já existe) — 1 linha por REQUISIÇÃO INTEIRA (cabeçalho)
+ *   requisiçao    (já existe — nome da aba SEM til no "ã") — 1 linha por
+ *   REQUISIÇÃO INTEIRA (cabeçalho)
  *     idMaterial, REQ, SOLICITANTE, TIPO DE REQ., DATA,
  *     OPERAÇÕES / MANUTEÇÃO, HELM, PEDIDO STATUS, DATA FINALIZADA, Link, OBS
  *     chave: idMaterial
@@ -27,7 +28,7 @@
  *     Material, Fluig, P/N, Item, Status, Data Recebimento, Qtde,
  *     cod bar, Adicionado ao Estoque, Qtde Recebida (nova), ID Item (nova)
  *     chave: ID Item
- *     Material = idMaterial da aba "requisição" (é o elo entre as duas abas)
+ *     Material = idMaterial da aba "requisiçao" (é o elo entre as duas abas)
  *
  * IMPORTANTE: adicione 2 colunas novas na aba "itens status", se ainda não
  * tiver: "Qtde Recebida" e "ID Item" (em qualquer posição, ficam em branco
@@ -69,13 +70,13 @@ const TABELAS = {
   },
   // Cabeçalho da requisição inteira — 1 linha por requisição.
   requisicoes: {
-    aba: 'requisição',
+    aba: 'requisiçao',
     chaveApp: 'id',
     chaveColuna: 'idMaterial',
     campos: {
-      id: 'idMaterial', solicitante: 'SOLICITANTE', tipoReq: 'TIPO DE REQ.',
+      id: 'idMaterial', reqNumero: 'REQ', solicitante: 'SOLICITANTE', tipoReq: 'TIPO DE REQ.',
       data: 'DATA', tipo: 'OPERAÇÕES / MANUTEÇÃO', helm: 'HELM',
-      status: 'PEDIDO STATUS', dataFinalizada: 'DATA FINALIZADA',
+      status: 'PEDIDO STATUS', dataFinalizada: 'DATA FINALIZADA', obs: 'OBS',
     },
   },
   // Itens da requisição — várias linhas podem apontar pro mesmo idMaterial
@@ -115,7 +116,7 @@ function lerTabelaComoObjetos_(nomeTabela) {
   const { cabecalho, valores } = lerAba_(cfg);
   if (valores.length < 2) return [];
   const camposInvertidos = Object.fromEntries(Object.entries(cfg.campos).map(([k, v]) => [v, k]));
-  return valores.slice(1).map((linha) => {
+  const objetos = valores.slice(1).map((linha) => {
     const obj = {};
     cabecalho.forEach((col, idx) => {
       const chaveApp = camposInvertidos[col];
@@ -128,6 +129,20 @@ function lerTabelaComoObjetos_(nomeTabela) {
     });
     return obj;
   });
+
+  // Itens antigos (de antes da coluna "ID Item" existir) não têm essa
+  // coluna preenchida. Sem um código próprio, todos ficariam com o mesmo
+  // id em branco e se sobreporiam no app. Gera um código a partir de
+  // Material + Fluig, que juntos identificam o item de forma única.
+  if (nomeTabela === 'itensStatus') {
+    objetos.forEach((obj, idx) => {
+      if (!obj.id) {
+        obj.id = 'antigo-' + (obj.requisicaoId || '') + '-' + (obj.idFluig || '') + '-' + idx;
+      }
+    });
+  }
+
+  return objetos;
 }
 
 // Atualiza (ou cria) uma linha, escrevendo SÓ nas colunas mapeadas em
