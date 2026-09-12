@@ -611,8 +611,8 @@ function renderCardRequisicao(r, todosItens) {
             <input type="text" class="in-idfluig" placeholder="Código" />
             <button type="button" class="botao-scan btn-scan-item" aria-label="Ler código de barras">📷</button>
           </span>
+          <input type="text" class="in-nome" placeholder="Descrição" />
           <button type="button" class="link-cadastrar-item oculto-flex campo-linha-inteira">Item não encontrado no estoque — toque aqui para cadastrar</button>
-          <input type="text" class="in-nome campo-linha-inteira" placeholder="Descrição" />
           <input type="number" class="in-qtd campo-linha-inteira" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
           <button class="botao btn-add-item">+ item</button>
         </div>
