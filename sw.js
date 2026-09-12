@@ -1,11 +1,11 @@
 // sw.js — guarda os arquivos do app em cache para que ele abra mesmo sem internet.
 // Só os arquivos do app (HTML/CSS/JS) ficam em cache; os dados em si vivem no IndexedDB.
 //
-// IMPORTANTE: toda vez que atualizar qualquer arquivo do app (styles.css,
-// ui.js, etc), troque o número aqui embaixo (v2 -> v3 -> v4...). Sem isso,
-// quem já usa o app fica preso na versão antiga guardada em cache, mesmo
-// depois de você subir os arquivos novos no GitHub.
-const CACHE_NOME = 'bram-estoque-v3';
+// Estratégia: tenta buscar a versão mais nova na rede primeiro; só usa o
+// cache se estiver sem internet. Assim, toda vez que você atualizar um
+// arquivo no GitHub, quem tiver internet já pega a versão nova na hora,
+// sem precisar lembrar de trocar nenhum número aqui.
+const CACHE_NOME = 'bram-estoque-v4';
 const ARQUIVOS = [
   './',
   './index.html',
@@ -68,7 +68,16 @@ self.addEventListener('fetch', (evt) => {
   // Chamadas ao backend do Google Apps Script passam direto (precisam de rede).
   if (!evt.request.url.startsWith(self.location.origin)) return;
 
+  // Network-first: tenta buscar fresco na rede; se conseguir, atualiza o
+  // cache também (pra próxima vez offline já estar com a versão nova).
+  // Se a rede falhar (sem internet), usa o que tiver em cache.
   evt.respondWith(
-    caches.match(evt.request).then((resposta) => resposta || fetch(evt.request))
+    fetch(evt.request)
+      .then((resposta_rede) => {
+        const copia = resposta_rede.clone();
+        caches.open(CACHE_NOME).then((cache) => cache.put(evt.request, copia));
+        return resposta_rede;
+      })
+      .catch(() => caches.match(evt.request))
   );
 });
