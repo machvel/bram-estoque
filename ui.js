@@ -77,10 +77,13 @@ document.getElementById('btnCancelarMovimento').addEventListener('click', () => 
 document.getElementById('btnCancelarRequisicao').addEventListener('click', () => fecharSheet('modalRequisicao'));
 
 // ---------- Foto do item (captura + compressão) ----------
+// Reduzida pra caber com folga no limite de ~50.000 caracteres de uma
+// célula do Google Sheets (a foto agora sincroniza com a planilha).
+const LIMITE_SEGURO_FOTO = 45000;
 
 let fotoAtualBase64 = '';
 
-function comprimirImagem(arquivo, maxLado = 640, qualidade = 0.6) {
+function comprimirImagem(arquivo, maxLado = 320, qualidade = 0.5) {
   return new Promise((resolve, reject) => {
     const leitor = new FileReader();
     leitor.onload = () => {
@@ -92,7 +95,12 @@ function comprimirImagem(arquivo, maxLado = 640, qualidade = 0.6) {
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', qualidade));
+        let dataUrl = canvas.toDataURL('image/jpeg', qualidade);
+        // Se ainda estiver grande demais, comprime mais uma vez, bem mais agressivo.
+        if (dataUrl.length > LIMITE_SEGURO_FOTO) {
+          dataUrl = canvas.toDataURL('image/jpeg', 0.3);
+        }
+        resolve(dataUrl);
       };
       img.onerror = reject;
       img.src = leitor.result;
