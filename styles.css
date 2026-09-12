@@ -137,6 +137,16 @@ html, body {
 .barra-busca svg { width: 18px; height: 18px; color: var(--texto-fraco); flex: 0 0 auto; }
 .barra-busca input { border: none; padding: 0; font-size: 0.88rem; }
 .barra-busca input:focus { outline: none; }
+.botao-scan-busca {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  font-size: 1.1rem;
+  padding: 0 0 0 6px;
+  margin: -4px -4px -4px 0;
+  cursor: pointer;
+  line-height: 1;
+}
 
 /* ---------- Conteúdo ---------- */
 main.telas { flex: 1; padding: 14px 14px 90px; }

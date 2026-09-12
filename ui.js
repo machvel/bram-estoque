@@ -273,6 +273,14 @@ async function renderMovimentos() {
 
 document.getElementById('buscaEstoque').addEventListener('input', renderEstoque);
 
+document.getElementById('btnScanBusca').addEventListener('click', () => {
+  BramScanner.abrirScanner((codigo) => {
+    const campo = document.getElementById('buscaEstoque');
+    campo.value = codigo;
+    renderEstoque();
+  });
+});
+
 // ---------- Detalhe do item + ajuste rápido de quantidade ----------
 
 let itemDetalheAtual = null;
