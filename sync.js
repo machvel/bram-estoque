@@ -71,8 +71,23 @@ async function sincronizarFila(onProgresso) {
 async function puxarDoServidor() {
   const url = getBackendUrl();
   if (!url) throw new Error('Configure o endereço do backend primeiro.');
-  const resp = await fetch(url + '?acao=exportar');
-  if (!resp.ok) throw new Error('Não foi possível ler os dados do servidor.');
+
+  const controlador = new AbortController();
+  const tempoLimite = setTimeout(() => controlador.abort(), 60000); // 60s
+
+  let resp;
+  try {
+    resp = await fetch(url + '?acao=exportar', { signal: controlador.signal });
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error('A planilha demorou demais pra responder (mais de 60s). Tente de novo — se persistir, pode ser sua planilha estar muito grande.');
+    }
+    throw new Error('Não foi possível conectar ao servidor: ' + e.message);
+  } finally {
+    clearTimeout(tempoLimite);
+  }
+
+  if (!resp.ok) throw new Error(`Não foi possível ler os dados do servidor (código ${resp.status}).`);
   const dados = await resp.json();
 
   // Garante que idFluig sempre chegue como texto — mesmo que a planilha
