@@ -674,7 +674,7 @@ function renderCardRequisicao(r, todosItens) {
         </div>
         <span class="chip ${chipStatus(r.status)}">${r.status}</span>
       </button>
-      <div class="req-corpo ${estaAberta ? '' : 'oculto-flex'}">
+      <div class="req-corpo sheet-caixa-escura ${estaAberta ? '' : 'oculto-flex'}">
         <button type="button" class="botao btn-fechar-req-corpo botao-linha-inteira-desktop">Fechar</button>
 
         <div class="detalhe-acoes-topo">
