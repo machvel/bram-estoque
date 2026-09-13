@@ -125,13 +125,14 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
 // Exclui um item de estoque por completo (não é uma saída — some da lista).
 // Atualiza só os dados cadastrais do item (local, prateleira, coluna, linha,
 // foto, P/N, marca, observação) — não mexe na quantidade nem gera movimento.
-async function atualizarDadosItem({ idFluig, nome, local, prateleira, coluna, linha, foto, pn, marca, observacao, itemCritico }) {
+async function atualizarDadosItem({ idFluig, nome, local, prateleira, coluna, linha, foto, pn, marca, observacao, itemCritico, quantidade }) {
   // "Editar item" só ALTERA um item que já existe — quem cria item novo é
   // o botão + (Lançar movimento).
   const item = await BramDB.get('estoque', String(idFluig));
   if (!item) {
     throw new Error(`Nenhum item encontrado com o código "${idFluig}". Pra cadastrar um item novo, use o botão + (Lançar movimento).`);
   }
+  if (quantidade !== undefined && quantidade !== '') item.quantidade = paraInteiro(quantidade);
   if (nome) item.nome = nome;
   if (local) item.local = local;
   if (prateleira) item.prateleira = prateleira;

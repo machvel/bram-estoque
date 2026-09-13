@@ -64,6 +64,7 @@ function definirModoFormMovimento(edicao) {
   modoEdicaoItem = edicao;
   document.getElementById('segmentoTipoMov').classList.toggle('oculto-flex', edicao);
   document.getElementById('campoQuantidadeMov').classList.toggle('oculto-flex', edicao);
+  document.getElementById('campoQuantidadeAtual').classList.toggle('oculto-flex', !edicao);
   document.getElementById('movQuantidade').required = !edicao;
   document.getElementById('tituloFormMovimento').textContent = edicao ? 'Editar item' : 'Registrar movimento';
   document.getElementById('sheetCaixaMovimento').classList.toggle('sheet-caixa-escura', edicao);
@@ -401,6 +402,7 @@ document.getElementById('btnEditarDetalhes').addEventListener('click', () => {
   document.querySelector('.app-shell').classList.remove('detalhe-aberto');
   const item = itemDetalheAtual;
   definirModoFormMovimento(true);
+  document.getElementById('movQuantidadeAtual').value = item.quantidade;
   document.getElementById('movIdFluig').value = item.idFluig;
   document.getElementById('movNome').value = item.nome;
   document.getElementById('movPn').value = item.pn || '';
@@ -454,7 +456,8 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
   };
   try {
     if (modoEdicaoItem) {
-      await BramApp.atualizarDadosItem(dadosComuns);
+      const qtdEditada = document.getElementById('movQuantidadeAtual').value;
+      await BramApp.atualizarDadosItem({ ...dadosComuns, quantidade: qtdEditada });
       mostrarMensagem('msgMovimento', 'Item atualizado.', 'ok');
     } else {
       const resultado = await BramApp.registrarMovimento({
