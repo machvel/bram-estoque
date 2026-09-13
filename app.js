@@ -36,7 +36,7 @@ async function migrarDuplicadosEstoque() {
   const todos = await BramDB.getAll('estoque');
   const grupos = {};
   for (const item of todos) {
-    const chave = String(item.idFluig);
+    const chave = normalizarCodigo_(item.idFluig) || String(item.idFluig);
     (grupos[chave] = grupos[chave] || []).push(item);
   }
 
@@ -47,7 +47,9 @@ async function migrarDuplicadosEstoque() {
 
     grupo.sort((a, b) => contarCamposPreenchidos(b) - contarCamposPreenchidos(a));
     const base = grupo[0];
-    const itemUnificado = { ...base, idFluig: chave };
+    // Mantém o código "de verdade" já usado pelo item mais completo — só
+    // normaliza pra texto, sem mudar dígitos/pontos de quem já estava certo.
+    const itemUnificado = { ...base, idFluig: String(base.idFluig) };
 
     for (const item of grupo) {
       await BramDB.del('estoque', item.idFluig);
@@ -57,9 +59,26 @@ async function migrarDuplicadosEstoque() {
   }
 }
 
+function normalizarCodigo_(codigo) {
+  return String(codigo || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
 async function obterOuCriarEstoque(idFluig, nome, unidade) {
   idFluig = String(idFluig);
   let item = await BramDB.get('estoque', idFluig);
+
+  if (!item) {
+    // Antes de criar um item novo, procura se já existe um com o mesmo
+    // código "de verdade", só que digitado/formatado diferente (com ou
+    // sem ponto, espaço, traço) — evita duplicar o mesmo item por causa
+    // de uma pequena diferença de formatação.
+    const normalizado = normalizarCodigo_(idFluig);
+    if (normalizado) {
+      const todos = await BramDB.getAll('estoque');
+      item = todos.find((i) => normalizarCodigo_(i.idFluig) === normalizado);
+    }
+  }
+
   if (!item) {
     item = { idFluig, nome: nome || idFluig, quantidade: 0, unidade: unidade || 'un', local: '', prateleira: '', coluna: '', linha: '', foto: '', pn: '', marca: '', obs: '', itemCritico: '' };
   }
