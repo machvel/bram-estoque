@@ -53,6 +53,12 @@ async function migrarDuplicadosEstoque() {
 
     for (const item of grupo) {
       await BramDB.del('estoque', item.idFluig);
+      // Apaga da planilha qualquer código "extra" do grupo (diferente do
+      // vencedor) — sem isso, a duplicata volta sozinha no próximo "Puxar
+      // dados da planilha", porque a linha a mais continua lá.
+      if (String(item.idFluig) !== itemUnificado.idFluig) {
+        await BramDB.enfileirar('estoque', 'delete', { idFluig: item.idFluig });
+      }
     }
     await BramDB.put('estoque', itemUnificado);
     await BramDB.enfileirar('estoque', 'upsert', itemUnificado);
