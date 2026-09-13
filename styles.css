@@ -135,7 +135,7 @@ html, body {
   box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 .barra-busca svg { width: 18px; height: 18px; color: var(--texto-fraco); flex: 0 0 auto; }
-.barra-busca input { border: none; padding: 0; font-size: 0.88rem; }
+.barra-busca input { border: none; padding: 0; font-size: 1rem; }
 .barra-busca input:focus { outline: none; }
 .botao-scan-busca {
   flex: 0 0 auto;
@@ -523,7 +523,7 @@ input, select {
   color: var(--texto);
   padding: 10px 11px;
   border-radius: 8px;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-family: var(--sans);
   width: 100%;
 }

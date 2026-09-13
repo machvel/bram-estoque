@@ -56,7 +56,7 @@ const TABELAS = {
     aba: 'Estoque',
     chaveApp: 'idFluig',
     chaveColuna: 'IDFluig',
-    campos: { idFluig: 'IDFluig', nome: 'Item', quantidade: 'Qtd', local: 'Local', prateleira: 'Prateleira', coluna: 'Coluna', linha: 'Linha', pn: 'P/N', marca: 'Marca', obs: 'OBS', itemCritico: 'Item Crítico' },
+    campos: { idFluig: 'IDFluig', nome: 'Item', quantidade: 'Qtd', local: 'Local', prateleira: 'Prateleira', coluna: 'Coluna', linha: 'Linha', pn: 'P/N', marca: 'Marca', obs: 'OBS', itemCritico: 'Item Crítico', foto: 'Foto' },
   },
   movimentos: {
     aba: 'Movimentos',
@@ -147,6 +147,17 @@ function lerTabelaComoObjetos_(nomeTabela) {
 
 // Atualiza (ou cria) uma linha, escrevendo SÓ nas colunas mapeadas em
 // cfg.campos — todas as outras colunas da linha existente são preservadas.
+// Google Sheets recusa valores de célula acima de ~50.000 caracteres.
+// Corta com segurança qualquer valor muito grande (ex: foto) em vez de
+// travar a sincronização inteira.
+const LIMITE_CELULA_SHEETS = 49000;
+function valorSeguroParaCelula_(valor) {
+  if (typeof valor === 'string' && valor.length > LIMITE_CELULA_SHEETS) {
+    return valor.slice(0, LIMITE_CELULA_SHEETS);
+  }
+  return valor;
+}
+
 function upsertLinha_(cfg, registro) {
   const { aba, cabecalho, valores } = lerAba_(cfg);
   const colChave = cabecalho.indexOf(cfg.chaveColuna);
@@ -162,12 +173,12 @@ function upsertLinha_(cfg, registro) {
       if (registro[chaveApp] === undefined) return;
       const colIdx = cabecalho.indexOf(nomeColuna);
       if (colIdx === -1) return;
-      aba.getRange(idxLinhaExistente + 1, colIdx + 1).setValue(registro[chaveApp]);
+      aba.getRange(idxLinhaExistente + 1, colIdx + 1).setValue(valorSeguroParaCelula_(registro[chaveApp]));
     });
   } else {
     const novaLinha = cabecalho.map((col) => {
       const chaveApp = Object.keys(cfg.campos).find((k) => cfg.campos[k] === col);
-      return chaveApp && registro[chaveApp] !== undefined ? registro[chaveApp] : '';
+      return chaveApp && registro[chaveApp] !== undefined ? valorSeguroParaCelula_(registro[chaveApp]) : '';
     });
     aba.appendRow(novaLinha);
   }
