@@ -34,16 +34,37 @@ function carregarScript_(src) {
   });
 }
 
+function carregarZbarEPolyfill_() {
+  return carregarScript_(ZBAR_WASM_URL).then(() => carregarScript_(POLYFILL_URL));
+}
+
 // Garante que window.BarcodeDetector exista — usa a nativa se o navegador
-// já tiver, senão carrega o substituto (zbar-wasm) uma vez só.
+// já tiver, senão carrega o substituto (zbar-wasm) uma vez só. Se os
+// arquivos carregarem "com sucesso" mas vierem incompletos (ex: cache
+// quebrado no meio do caminho), tenta de novo uma vez, ignorando qualquer
+// cache antigo.
 function garantirBarcodeDetector() {
   if ('BarcodeDetector' in window) return Promise.resolve();
   if (carregandoPolyfill) return carregandoPolyfill;
 
-  carregandoPolyfill = carregarScript_(ZBAR_WASM_URL)
-    .then(() => carregarScript_(POLYFILL_URL))
+  const pronto = () => window.barcodeDetectorPolyfill && window.barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+
+  carregandoPolyfill = carregarZbarEPolyfill_()
     .then(() => {
+      if (pronto()) return;
+      // Veio incompleto — tenta de novo forçando ignorar cache antigo.
+      const semCache = '?v=' + Date.now();
+      return carregarScript_(ZBAR_WASM_URL + semCache).then(() => carregarScript_(POLYFILL_URL + semCache));
+    })
+    .then(() => {
+      if (!pronto()) {
+        throw new Error('O leitor de código de barras não carregou corretamente. Verifique sua internet e tente de novo.');
+      }
       window.BarcodeDetector = window.barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+    })
+    .catch((e) => {
+      carregandoPolyfill = null; // permite tentar de novo na próxima vez que abrir o scanner
+      throw e;
     });
   return carregandoPolyfill;
 }
