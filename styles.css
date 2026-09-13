@@ -598,7 +598,7 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   display: block;
 }
 .scanner-camera-area canvas.drawingBuffer { position: absolute; top: 0; left: 0; }
-.scanner-video { width: 100%; border-radius: 8px; border: 2px solid var(--primaria); background: #000; }
+.scanner-video { width: 100%; display: block; background: #000; }
 .scanner-dica { color: #fff; font-size: 0.85rem; margin: 12px 0; }
 .scanner-fechar { width: 100%; }
 

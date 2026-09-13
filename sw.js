@@ -24,7 +24,7 @@ const ARQUIVOS = [
 // (usada só em navegadores sem leitura nativa, tipo Safari/iPhone).
 // Guardamos ela aqui pra, depois do primeiro uso, funcionar offline também.
 const CACHE_SCANNER = 'bram-scanner-lib-v1';
-const HOST_SCANNER_EXTERNO = 'unpkg.com';
+const HOSTS_SCANNER_EXTERNO = ['unpkg.com', 'cdn.jsdelivr.net'];
 
 self.addEventListener('install', (evt) => {
   evt.waitUntil(
@@ -49,7 +49,7 @@ self.addEventListener('fetch', (evt) => {
 
   // Biblioteca externa do leitor de código de barras: guarda em cache
   // assim que baixar, e reusa depois — mesmo offline.
-  if (url.hostname === HOST_SCANNER_EXTERNO) {
+  if (HOSTS_SCANNER_EXTERNO.includes(url.hostname)) {
     evt.respondWith(
       caches.open(CACHE_SCANNER).then((cache) =>
         cache.match(evt.request).then((resposta) => {

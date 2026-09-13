@@ -1,28 +1,51 @@
 // scanner.js — leitura de código de barras pela câmera.
-// 1ª opção: BarcodeDetector nativa (Chrome/Android/Edge) — rápida e 100% offline.
-// 2ª opção (fallback): biblioteca Quagga2 carregada de um CDN — funciona em
-// qualquer navegador, incluindo Safari/iPhone, mas precisa de internet a
-// primeira vez que for usada (depois disso o app guarda em cache sozinho).
+//
+// Sempre usa a API padrão BarcodeDetector do navegador. Em navegadores que
+// já têm isso embutido (Chrome/Android), usa direto — rápido e 100% offline.
+// Em navegadores sem essa leitura embutida (Safari/iPhone), carrega uma
+// biblioteca (zbar-wasm) que "se disfarça" de BarcodeDetector, então o
+// resto do código nem precisa saber a diferença. zbar-wasm é baseada numa
+// biblioteca C madura (ZBar) e costuma ler com mais precisão que
+// bibliotecas 100% JavaScript.
+//
+// Precisa de internet só na primeira vez que usar a câmera nesse
+// aparelho — depois disso o app guarda em cache sozinho (veja sw.js).
 
-const QUAGGA_CDN_URL = 'https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js';
-let quaggaCarregando = null;
+const ZBAR_WASM_URL = 'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js';
+const POLYFILL_URL = 'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.20/dist/index.js';
+let carregandoPolyfill = null;
+
+// Exige a MESMA leitura se repetir algumas vezes seguidas antes de aceitar
+// como certa — evita que um quadro isolado com ruído confunda a leitura e
+// registre um código errado.
+const LEITURAS_PARA_CONFIRMAR = 3;
 
 function suportaLeituraCamera() {
   return 'mediaDevices' in navigator; // câmera em si — o método de leitura é escolhido depois
 }
 
-function carregarQuagga() {
-  if (window.Quagga) return Promise.resolve();
-  if (quaggaCarregando) return quaggaCarregando;
-
-  quaggaCarregando = new Promise((resolve, reject) => {
+function carregarScript_(src) {
+  return new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = QUAGGA_CDN_URL;
+    script.src = src;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Não foi possível carregar o leitor de código de barras (precisa de internet na primeira vez).'));
     document.head.appendChild(script);
   });
-  return quaggaCarregando;
+}
+
+// Garante que window.BarcodeDetector exista — usa a nativa se o navegador
+// já tiver, senão carrega o substituto (zbar-wasm) uma vez só.
+function garantirBarcodeDetector() {
+  if ('BarcodeDetector' in window) return Promise.resolve();
+  if (carregandoPolyfill) return carregandoPolyfill;
+
+  carregandoPolyfill = carregarScript_(ZBAR_WASM_URL)
+    .then(() => carregarScript_(POLYFILL_URL))
+    .then(() => {
+      window.BarcodeDetector = window.barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+    });
+  return carregandoPolyfill;
 }
 
 function criarOverlay() {
@@ -30,13 +53,33 @@ function criarOverlay() {
   overlay.className = 'scanner-overlay';
   overlay.innerHTML = `
     <div class="scanner-caixa">
-      <div class="scanner-camera-area"></div>
+      <div class="scanner-camera-area"><video class="scanner-video" autoplay playsinline muted></video></div>
       <p class="scanner-dica">Aponte a câmera para o código de barras</p>
       <button class="botao scanner-fechar">Cancelar</button>
     </div>
   `;
   document.body.appendChild(overlay);
   return overlay;
+}
+
+// Recebe cada leitura "crua" da câmera; só chama aoConfirmar(codigo) depois
+// da mesma leitura se repetir LEITURAS_PARA_CONFIRMAR vezes seguidas.
+function criarConfirmadorLeitura(aoConfirmar, aoProgredir) {
+  let ultimoCodigo = null;
+  let contagem = 0;
+  return function (codigo) {
+    if (!codigo) return;
+    if (codigo === ultimoCodigo) {
+      contagem += 1;
+    } else {
+      ultimoCodigo = codigo;
+      contagem = 1;
+    }
+    if (aoProgredir) aoProgredir(contagem, LEITURAS_PARA_CONFIRMAR);
+    if (contagem >= LEITURAS_PARA_CONFIRMAR) {
+      aoConfirmar(codigo);
+    }
+  };
 }
 
 async function abrirScanner(aoLer) {
@@ -46,99 +89,66 @@ async function abrirScanner(aoLer) {
   }
 
   const overlay = criarOverlay();
-  const areaCamera = overlay.querySelector('.scanner-camera-area');
+  const video = overlay.querySelector('.scanner-video');
   const dica = overlay.querySelector('.scanner-dica');
   const botaoFechar = overlay.querySelector('.scanner-fechar');
   let stream = null;
   let intervalo = null;
-  let usandoQuagga = false;
   let encerrado = false;
 
   function encerrar() {
     if (encerrado) return;
     encerrado = true;
     if (intervalo) clearInterval(intervalo);
-    if (usandoQuagga && window.Quagga) { try { window.Quagga.stop(); } catch (e) {} }
     if (stream) stream.getTracks().forEach((t) => t.stop());
     overlay.remove();
   }
   botaoFechar.addEventListener('click', encerrar);
 
-  // 1ª opção: leitura nativa do navegador (offline, mais rápida) — usa um
-  // <video> próprio, com a câmera que a gente mesmo pede.
-  if ('BarcodeDetector' in window) {
-    try {
-      const video = document.createElement('video');
-      video.className = 'scanner-video';
-      video.autoplay = true; video.playsInline = true; video.muted = true;
-      areaCamera.appendChild(video);
-
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = stream;
-
-      const detector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'],
-      });
-      intervalo = setInterval(async () => {
-        try {
-          const codigos = await detector.detect(video);
-          if (codigos.length > 0 && !encerrado) {
-            const valor = codigos[0].rawValue;
-            encerrar();
-            aoLer(valor);
-          }
-        } catch (e) {
-          // ignora falha pontual de um frame, tenta de novo no próximo
-        }
-      }, 300);
-      return;
-    } catch (e) {
-      // se der erro (câmera negada, ou detector nativo falhou), cai pro fallback abaixo
-      if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
-      areaCamera.innerHTML = '';
-    }
-  }
-
-  // 2ª opção: biblioteca Quagga2 (funciona em qualquer navegador, incl.
-  // Safari) — ela mesma pede acesso à câmera e cria o próprio vídeo dentro
-  // do container que a gente passa.
-  dica.textContent = 'Carregando leitor de código de barras…';
-  try {
-    await carregarQuagga();
+  const mostrarProgresso = (contagem, necessarias) => {
     if (encerrado) return;
-    usandoQuagga = true;
-    dica.textContent = 'Aponte a câmera para o código de barras';
+    dica.textContent = contagem >= necessarias
+      ? 'Código confirmado!'
+      : `Confirmando leitura… (${contagem}/${necessarias})`;
+  };
+  const confirmar = criarConfirmadorLeitura((codigo) => {
+    encerrar();
+    aoLer(codigo);
+  }, mostrarProgresso);
 
-    window.Quagga.init({
-      inputStream: {
-        type: 'LiveStream',
-        target: areaCamera,
-        constraints: { facingMode: 'environment' },
-      },
-      locator: { patchSize: 'medium', halfSample: true },
-      numOfWorkers: 2,
-      decoder: {
-        readers: ['code_128_reader', 'ean_reader', 'ean_8_reader', 'code_39_reader', 'upc_reader', 'upc_e_reader'],
-      },
-      locate: true,
-    }, (erro) => {
-      if (erro) {
-        dica.textContent = 'Não foi possível acessar a câmera. Verifique a permissão do navegador.';
-        return;
-      }
-      if (encerrado) return;
-      window.Quagga.start();
-      window.Quagga.onDetected((resultado) => {
-        const valor = resultado && resultado.codeResult && resultado.codeResult.code;
-        if (valor && !encerrado) {
-          encerrar();
-          aoLer(valor);
-        }
-      });
-    });
-  } catch (e) {
-    dica.textContent = e.message || 'Não foi possível carregar o leitor de código de barras. Digite manualmente.';
+  if (!('BarcodeDetector' in window)) {
+    dica.textContent = 'Carregando leitor de código de barras…';
   }
+  try {
+    await garantirBarcodeDetector();
+  } catch (e) {
+    dica.textContent = e.message;
+    return;
+  }
+  if (encerrado) return;
+  dica.textContent = 'Aponte a câmera para o código de barras';
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = stream;
+  } catch (e) {
+    dica.textContent = 'Não foi possível acessar a câmera. Verifique a permissão do navegador.';
+    return;
+  }
+
+  const detector = new BarcodeDetector({
+    formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'],
+  });
+  intervalo = setInterval(async () => {
+    try {
+      const codigos = await detector.detect(video);
+      if (codigos.length > 0 && !encerrado) {
+        confirmar(codigos[0].rawValue);
+      }
+    } catch (e) {
+      // ignora falha pontual de um frame, tenta de novo no próximo
+    }
+  }, 250);
 }
 
 window.BramScanner = { abrirScanner, suportaLeituraCamera };
