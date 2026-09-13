@@ -1071,6 +1071,22 @@ document.getElementById('btnReenviarFotos').addEventListener('click', async () =
 
 // ---------- Inicialização ----------
 
+// Puxa dados da planilha automaticamente, sem perguntar nada — só quando
+// tiver internet configurada. Falha em silêncio (tenta de novo no próximo ciclo).
+async function puxarAutomaticamente() {
+  if (!navigator.onLine || !BramSync.getBackendUrl()) return;
+  try {
+    await BramSync.puxarDoServidor();
+    await BramApp.migrarDuplicadosEstoque();
+    const abaAtual = document.querySelector('.nav-item.ativo')?.dataset.aba;
+    if (abaAtual === 'estoque') await renderEstoque();
+    if (abaAtual === 'requisicoes') await renderRequisicoes();
+    await atualizarStatusConexao();
+  } catch (e) {
+    // Sem sorte dessa vez — tenta de novo no próximo ciclo automático.
+  }
+}
+
 (async function iniciar() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -1084,4 +1100,9 @@ document.getElementById('btnReenviarFotos').addEventListener('click', async () =
     BramSync.sincronizarFila().then(atualizarStatusConexao);
   }
   setInterval(atualizarStatusConexao, 5000);
+
+  // Sincronização automática: puxa dados da planilha pouco depois de abrir
+  // o app, e depois a cada 5 minutos — sem precisar apertar nada.
+  setTimeout(puxarAutomaticamente, 4000);
+  setInterval(puxarAutomaticamente, 5 * 60 * 1000);
 })();
