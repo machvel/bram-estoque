@@ -947,6 +947,7 @@ function ligarEventosRequisicoes(container, todosItens) {
         } else {
           await BramApp.adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem: nome, quantidadeSolicitada: qtd });
         }
+        formItemAbertoId = null; // fecha o formulário — precisa apertar "+ Adicionar item" de novo pro próximo
         await renderRequisicoes();
         await renderEstoque();
         await atualizarStatusConexao();

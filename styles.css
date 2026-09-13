@@ -774,6 +774,7 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
     position: fixed;
     top: 0;
     right: 0;
+    left: auto;
     bottom: 0;
     width: 380px;
     max-width: 90vw;
