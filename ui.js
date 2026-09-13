@@ -128,6 +128,7 @@ document.getElementById('movFoto').addEventListener('change', async (evt) => {
 });
 
 document.getElementById('btnRemoverFoto').addEventListener('click', () => {
+  if (!confirm('Remover esta foto?')) return;
   fotoAtualBase64 = '';
   document.getElementById('movFoto').value = '';
   document.getElementById('fotoPreview').classList.add('oculto-flex');
