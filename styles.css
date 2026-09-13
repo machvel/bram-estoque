@@ -584,6 +584,20 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px;
 }
 .scanner-caixa { width: 100%; max-width: 420px; text-align: center; }
+.scanner-camera-area {
+  width: 100%;
+  border-radius: 8px;
+  border: 2px solid var(--primaria);
+  background: #000;
+  overflow: hidden;
+  position: relative;
+  min-height: 240px;
+}
+.scanner-camera-area video, .scanner-camera-area canvas {
+  width: 100%;
+  display: block;
+}
+.scanner-camera-area canvas.drawingBuffer { position: absolute; top: 0; left: 0; }
 .scanner-video { width: 100%; border-radius: 8px; border: 2px solid var(--primaria); background: #000; }
 .scanner-dica { color: #fff; font-size: 0.85rem; margin: 12px 0; }
 .scanner-fechar { width: 100%; }
