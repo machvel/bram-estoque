@@ -74,7 +74,14 @@ document.getElementById('fabAdicionar').addEventListener('click', () => {
   else if (abaAtiva() === 'requisicoes') abrirSheet('modalRequisicao');
 });
 document.getElementById('btnCancelarMovimento').addEventListener('click', () => fecharSheet('modalMovimento'));
-document.getElementById('btnCancelarRequisicao').addEventListener('click', () => fecharSheet('modalRequisicao'));
+document.getElementById('btnCancelarRequisicao').addEventListener('click', () => {
+  fecharSheet('modalRequisicao');
+  delete document.getElementById('formRequisicao').dataset.editando;
+  document.getElementById('tituloFormRequisicao').textContent = 'Nova requisição';
+  document.getElementById('btnCriarOuSalvarRequisicao').textContent = 'Criar requisição';
+  document.getElementById('formRequisicao').reset();
+  atualizarVisibilidadeTipo();
+});
 
 // ---------- Foto do item (captura + compressão) ----------
 // Reduzida pra caber com folga no limite de ~50.000 caracteres de uma
@@ -505,14 +512,30 @@ atualizarVisibilidadeTipo();
 
 document.getElementById('formRequisicao').addEventListener('submit', async (evt) => {
   evt.preventDefault();
+  const idEditando = evt.target.dataset.editando;
+  const dadosForm = {
+    reqNumero: document.getElementById('reqNumero').value.trim(),
+    solicitante: document.getElementById('reqSolicitante').value.trim(),
+    tipoReq: document.getElementById('reqTipoReq').value,
+    tipo: document.getElementById('reqTipo').value,
+    helm: document.getElementById('reqHelm').value.trim(),
+  };
   try {
-    const novaReq = await BramApp.criarRequisicao({
-      reqNumero: document.getElementById('reqNumero').value.trim(),
-      solicitante: document.getElementById('reqSolicitante').value.trim(),
-      tipoReq: document.getElementById('reqTipoReq').value,
-      tipo: document.getElementById('reqTipo').value,
-      helm: document.getElementById('reqHelm').value.trim(),
-    });
+    if (idEditando) {
+      await BramApp.editarRequisicao({ id: idEditando, ...dadosForm });
+      delete evt.target.dataset.editando;
+      document.getElementById('tituloFormRequisicao').textContent = 'Nova requisição';
+      document.getElementById('btnCriarOuSalvarRequisicao').textContent = 'Criar requisição';
+      mostrarMensagem('msgRequisicao', 'Requisição atualizada.', 'ok');
+      evt.target.reset();
+      atualizarVisibilidadeTipo();
+      await renderRequisicoes();
+      await atualizarStatusConexao();
+      setTimeout(() => { fecharSheet('modalRequisicao'); mostrarMensagem('msgRequisicao', ''); }, 500);
+      return;
+    }
+
+    const novaReq = await BramApp.criarRequisicao(dadosForm);
     mostrarMensagem('msgRequisicao', 'Requisição criada.', 'ok');
     evt.target.reset();
     atualizarVisibilidadeTipo();
@@ -694,6 +717,7 @@ function renderCardRequisicao(r, todosItens) {
         <div class="campo-detalhe-vertical"><span class="rotulo">Data</span><strong class="valor">${fmtData(r.data)}</strong></div>
         <div class="campo-detalhe-vertical"><span class="rotulo">Pedido status</span><strong class="valor">${r.status}</strong></div>
         ${r.helm ? `<div class="campo-detalhe-vertical"><span class="rotulo">HELM</span><strong class="valor">${r.helm}</strong></div>` : ''}
+        <button type="button" class="botao botao-texto btn-editar-requisicao" data-req="${r.id}" style="margin-top:8px">Editar requisição</button>
 
         <div class="lista-cabecalho" style="margin-top:16px"><h2>Itens relacionados (${itens.length})</h2></div>
         <div class="tabela-itens-req">
@@ -735,6 +759,28 @@ function renderCardRequisicao(r, todosItens) {
 }
 
 function ligarEventosRequisicoes(container, todosItens) {
+  // Deslizar o dedo pro lado, dentro do detalhe aberto, pula pra
+  // requisição anterior/seguinte da lista, sem precisar fechar e abrir de novo.
+  container.querySelectorAll('.req-corpo').forEach((corpo) => {
+    let inicioX = null, inicioY = null;
+    corpo.addEventListener('touchstart', (evt) => {
+      inicioX = evt.touches[0].clientX;
+      inicioY = evt.touches[0].clientY;
+    }, { passive: true });
+    corpo.addEventListener('touchend', (evt) => {
+      if (inicioX === null) return;
+      const deltaX = evt.changedTouches[0].clientX - inicioX;
+      const deltaY = evt.changedTouches[0].clientY - inicioY;
+      inicioX = null;
+      if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return; // só gestos bem horizontais
+      const cardAtual = corpo.closest('.card-requisicao');
+      const todosCards = Array.from(document.querySelectorAll('#listaRequisicoes .card-requisicao'));
+      const indiceAtual = todosCards.indexOf(cardAtual);
+      const proximoCard = deltaX < 0 ? todosCards[indiceAtual + 1] : todosCards[indiceAtual - 1];
+      if (proximoCard) proximoCard.querySelector('.req-cabecalho--clicavel').click();
+    }, { passive: true });
+  });
+
   container.querySelectorAll('.req-col-ordenavel').forEach((btn) => {
     btn.addEventListener('click', () => {
       const campo = btn.dataset.ordenar;
@@ -767,6 +813,25 @@ function ligarEventosRequisicoes(container, todosItens) {
       btn.closest('.req-corpo').classList.add('oculto-flex');
       requisicaoAbertaId = null;
       formItemAbertoId = null;
+    });
+  });
+
+  container.querySelectorAll('.btn-editar-requisicao').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const req = await BramDB.get('requisicoes', btn.dataset.req);
+      if (!req) return;
+      const form = document.getElementById('formRequisicao');
+      form.dataset.editando = req.id;
+      document.getElementById('tituloFormRequisicao').textContent = 'Editar requisição';
+      document.getElementById('btnCriarOuSalvarRequisicao').textContent = 'Salvar alterações';
+      document.getElementById('reqNumero').value = req.reqNumero || '';
+      document.getElementById('reqSolicitante').value = req.solicitante || '';
+      document.getElementById('reqTipoReq').value = req.tipoReq || 'Pedido';
+      atualizarVisibilidadeTipo();
+      document.getElementById('reqTipo').value = req.tipo || 'OPERAÇÃO';
+      atualizarVisibilidadeHelm();
+      document.getElementById('reqHelm').value = req.helm || '';
+      abrirSheet('modalRequisicao');
     });
   });
 

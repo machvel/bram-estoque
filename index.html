@@ -257,7 +257,7 @@
   <div class="modal-sheet oculta" id="modalRequisicao">
     <div class="sheet-caixa sheet-caixa-escura">
       <div class="sheet-alca"></div>
-      <p class="sheet-titulo">Nova requisição</p>
+      <p class="sheet-titulo" id="tituloFormRequisicao">Nova requisição</p>
       <form id="formRequisicao">
         <div class="campo"><label>Número da requisição</label><input type="text" id="reqNumero" placeholder="ex: 1102366" /></div>
         <div class="campo"><label>Solicitante</label><input type="text" id="reqSolicitante" required /></div>
@@ -281,7 +281,7 @@
           <input type="text" id="reqHelm" placeholder="ex: 242-T-803" />
         </div>
         <p class="mensagem" id="msgRequisicao"></p>
-        <button type="submit" class="botao botao-primario botao-bloco">Criar requisição</button>
+        <button type="submit" class="botao botao-primario botao-bloco" id="btnCriarOuSalvarRequisicao">Criar requisição</button>
         <button type="button" class="botao botao-bloco" id="btnCancelarRequisicao" style="margin-top:8px">Cancelar</button>
       </form>
     </div>

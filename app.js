@@ -185,6 +185,22 @@ async function criarRequisicao({ solicitante, tipoReq, tipo, helm, reqNumero }) 
   return req;
 }
 
+// Corrige os dados de uma requisição já existente (ex: número digitado
+// errado), sem precisar excluir e criar de novo.
+async function editarRequisicao({ id, reqNumero, solicitante, tipoReq, tipo, helm }) {
+  const req = await BramDB.get('requisicoes', id);
+  if (!req) throw new Error('Requisição não encontrada.');
+  const ehPedidoManutencao = tipoReq === 'Pedido' && tipo === 'MANUTENÇÃO';
+  req.reqNumero = reqNumero || '';
+  req.solicitante = solicitante || '';
+  req.tipoReq = tipoReq || 'Pedido';
+  req.tipo = tipoReq === 'Pedido' ? (tipo || 'OPERAÇÃO') : '';
+  req.helm = ehPedidoManutencao ? (helm || '') : '';
+  await BramDB.put('requisicoes', req);
+  await BramDB.enfileirar('requisicoes', 'upsert', req);
+  return req;
+}
+
 // Ação rápida: marca a requisição inteira como concluída ou cancelada
 // diretamente (sem mexer nos itens um por um).
 async function definirStatusRequisicao(requisicaoId, novoStatus) {
@@ -356,6 +372,7 @@ window.BramApp = {
   migrarDuplicadosEstoque,
   reenviarFotos,
   criarRequisicao,
+  editarRequisicao,
   excluirRequisicao,
   definirStatusRequisicao,
   adicionarItemRequisicao,
