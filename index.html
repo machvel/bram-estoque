@@ -30,12 +30,14 @@
 
     <!-- ESTOQUE -->
     <section class="tela" id="tela-estoque">
-      <div class="barra-busca">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input type="text" id="buscaEstoque" placeholder="Nome, código, P/N, marca ou observação" />
-        <button type="button" class="botao-scan-busca" id="btnScanBusca" aria-label="Ler código de barras">📷</button>
+      <div class="requisicoes-topo-fixo">
+        <div class="barra-busca">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          <input type="text" id="buscaEstoque" placeholder="Nome, código, P/N, marca ou observação" />
+          <button type="button" class="botao-scan-busca" id="btnScanBusca" aria-label="Ler código de barras">📷</button>
+        </div>
+        <div class="lista-cabecalho"><h2>Itens em estoque</h2></div>
       </div>
-      <div class="lista-cabecalho"><h2>Itens em estoque</h2></div>
       <div class="lista-cards" id="listaEstoqueCards"></div>
     </section>
 
@@ -55,23 +57,27 @@
           <button type="button" class="filtro-status-item" data-filtro="canceladas">Canceladas</button>
         </nav>
         <div class="requisicoes-lista-area">
-          <div class="barra-busca">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-            <input type="text" id="buscaRequisicoes" placeholder="Nº requisição, item, ID Fluig ou observação" />
-            <button type="button" class="botao-scan-busca" id="btnScanBuscaReq" aria-label="Ler código de barras">📷</button>
+          <div class="requisicoes-topo-fixo">
+            <div class="barra-busca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+              <input type="text" id="buscaRequisicoes" placeholder="Nº requisição, item, ID Fluig ou observação" />
+              <button type="button" class="botao-scan-busca" id="btnScanBuscaReq" aria-label="Ler código de barras">📷</button>
+            </div>
+            <div class="lista-cabecalho lista-cabecalho-fixo"><h2 id="tituloFiltroReq">Abertas</h2></div>
           </div>
-          <div class="lista-cabecalho"><h2 id="tituloFiltroReq">Abertas</h2></div>
-          <div class="lista-cards" id="listaRequisicoes"></div>
+          <div class="requisicoes-rolavel">
+            <div class="lista-cards" id="listaRequisicoes"></div>
+
+            <div class="lista-cabecalho" style="margin-top:22px"><h2>Itens avulsos (histórico)</h2></div>
+            <p class="texto-apoio" style="margin:-6px 2px 10px; color:#9AA0A6">Itens antigos do AppSheet sem requisição vinculada.</p>
+            <div class="barra-busca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+              <input type="text" id="buscaAvulsos" placeholder="Buscar por nome ou código" />
+            </div>
+            <div class="lista-cards" id="listaItensAvulsos"></div>
+          </div>
         </div>
       </div>
-
-      <div class="lista-cabecalho" style="margin-top:22px"><h2>Itens avulsos (histórico)</h2></div>
-      <p class="texto-apoio" style="margin:-6px 2px 10px; color:#9AA0A6">Itens antigos do AppSheet sem requisição vinculada.</p>
-      <div class="barra-busca">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input type="text" id="buscaAvulsos" placeholder="Buscar por nome ou código" />
-      </div>
-      <div class="lista-cards" id="listaItensAvulsos"></div>
     </section>
 
     <!-- SINCRONIZAR (vive dentro do menu lateral, não na navegação inferior) -->

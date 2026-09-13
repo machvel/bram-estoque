@@ -982,3 +982,24 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   z-index: 6;
 }
 .sheet-caixa-escura .btn-voltar-detalhe { color: #fff; }
+
+/* ---------- Requisições: busca, título e filtro ficam fixos; só a lista rola ---------- */
+.requisicoes-topo-fixo {
+  position: sticky;
+  top: 58px; /* altura do topbar no celular, que divide o mesmo scroll da página */
+  z-index: 10;
+  background: var(--fundo);
+  padding-top: 4px;
+  margin-top: -4px;
+}
+.filtro-status-req {
+  position: sticky;
+  top: 58px;
+  align-self: flex-start;
+}
+@media (min-width: 860px) {
+  /* No computador, o conteúdo rola dentro de main.telas, que já começa
+     abaixo do topbar — não precisa descontar a altura dele de novo. */
+  .requisicoes-topo-fixo { top: 0; }
+  .filtro-status-req { top: 0; }
+}
