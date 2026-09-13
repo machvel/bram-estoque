@@ -956,3 +956,20 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   padding: 12px 2px 6px;
 }
 .subcabecalho-tipo-req:first-child { padding-top: 2px; }
+
+/* Seta de voltar no topo do detalhe do item, estilo AppSheet */
+.btn-voltar-detalhe {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: var(--texto);
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 6;
+}
+.sheet-caixa-escura .btn-voltar-detalhe { color: #fff; }

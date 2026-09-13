@@ -382,7 +382,7 @@ document.getElementById('modalFotoAmpliada').addEventListener('click', (evt) => 
   if (evt.target.id === 'modalFotoAmpliada') evt.currentTarget.classList.add('oculta');
 });
 
-document.getElementById('btnFecharDetalheItem').addEventListener('click', () => {
+document.getElementById('btnVoltarDetalheItem').addEventListener('click', () => {
   document.getElementById('modalDetalheItem').classList.add('oculta');
   document.querySelector('.app-shell').classList.remove('detalhe-aberto');
   mostrarMensagem('msgDetalheItem', '');
