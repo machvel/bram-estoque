@@ -519,6 +519,7 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
     tipoReq: document.getElementById('reqTipoReq').value,
     tipo: document.getElementById('reqTipo').value,
     helm: document.getElementById('reqHelm').value.trim(),
+    obs: document.getElementById('reqObs').value.trim(),
   };
   try {
     if (idEditando) {
@@ -832,6 +833,7 @@ function ligarEventosRequisicoes(container, todosItens) {
       document.getElementById('reqTipo').value = req.tipo || 'OPERAÇÃO';
       atualizarVisibilidadeHelm();
       document.getElementById('reqHelm').value = req.helm || '';
+      document.getElementById('reqObs').value = req.obs || '';
       abrirSheet('modalRequisicao');
     });
   });

@@ -51,14 +51,14 @@ async function migrarDuplicadosEstoque() {
     // normaliza pra texto, sem mudar dígitos/pontos de quem já estava certo.
     const itemUnificado = { ...base, idFluig: String(base.idFluig) };
 
+    // Importante: só limpa duplicados NESTE aparelho (mescla localmente,
+    // pra você ver só um item na lista). NÃO apaga nada na planilha
+    // automaticamente — se dois aparelhos decidirem coisas diferentes ao
+    // mesmo tempo sobre qual versão é "a certa", apagar dos dois lados
+    // pode acabar apagando as duas variantes da planilha. Duplicata na
+    // planilha em si precisa ser removida manualmente por você, com calma.
     for (const item of grupo) {
       await BramDB.del('estoque', item.idFluig);
-      // Apaga da planilha qualquer código "extra" do grupo (diferente do
-      // vencedor) — sem isso, a duplicata volta sozinha no próximo "Puxar
-      // dados da planilha", porque a linha a mais continua lá.
-      if (String(item.idFluig) !== itemUnificado.idFluig) {
-        await BramDB.enfileirar('estoque', 'delete', { idFluig: item.idFluig });
-      }
     }
     await BramDB.put('estoque', itemUnificado);
     await BramDB.enfileirar('estoque', 'upsert', itemUnificado);
@@ -168,7 +168,7 @@ async function excluirItemEstoque(idFluig) {
 // tipoReq: 'Pedido' | 'Desembarque' | 'Cadastro'
 // tipo (só relevante quando tipoReq === 'Pedido'): 'OPERAÇÃO' | 'MANUTENÇÃO'
 
-async function criarRequisicao({ solicitante, tipoReq, tipo, helm, reqNumero }) {
+async function criarRequisicao({ solicitante, tipoReq, tipo, helm, reqNumero, obs }) {
   const ehPedidoManutencao = tipoReq === 'Pedido' && tipo === 'MANUTENÇÃO';
   const req = {
     id: uid(),
@@ -177,6 +177,7 @@ async function criarRequisicao({ solicitante, tipoReq, tipo, helm, reqNumero }) 
     tipoReq: tipoReq || 'Pedido',
     tipo: tipoReq === 'Pedido' ? (tipo || 'OPERAÇÃO') : '',
     helm: ehPedidoManutencao ? (helm || '') : '',
+    obs: obs || '',
     data: new Date().toISOString(),
     status: 'Aberta',
   };
@@ -187,7 +188,7 @@ async function criarRequisicao({ solicitante, tipoReq, tipo, helm, reqNumero }) 
 
 // Corrige os dados de uma requisição já existente (ex: número digitado
 // errado), sem precisar excluir e criar de novo.
-async function editarRequisicao({ id, reqNumero, solicitante, tipoReq, tipo, helm }) {
+async function editarRequisicao({ id, reqNumero, solicitante, tipoReq, tipo, helm, obs }) {
   const req = await BramDB.get('requisicoes', id);
   if (!req) throw new Error('Requisição não encontrada.');
   const ehPedidoManutencao = tipoReq === 'Pedido' && tipo === 'MANUTENÇÃO';
@@ -196,6 +197,7 @@ async function editarRequisicao({ id, reqNumero, solicitante, tipoReq, tipo, hel
   req.tipoReq = tipoReq || 'Pedido';
   req.tipo = tipoReq === 'Pedido' ? (tipo || 'OPERAÇÃO') : '';
   req.helm = ehPedidoManutencao ? (helm || '') : '';
+  req.obs = obs || '';
   await BramDB.put('requisicoes', req);
   await BramDB.enfileirar('requisicoes', 'upsert', req);
   return req;
