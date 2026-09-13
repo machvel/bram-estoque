@@ -457,13 +457,14 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
       await BramApp.atualizarDadosItem(dadosComuns);
       mostrarMensagem('msgMovimento', 'Item atualizado.', 'ok');
     } else {
-      await BramApp.registrarMovimento({
+      const resultado = await BramApp.registrarMovimento({
         ...dadosComuns,
         tipo: tipoMovimentoSelecionado,
         quantidade: document.getElementById('movQuantidade').value,
         responsavel: document.getElementById('movResponsavel').value.trim(),
       });
-      mostrarMensagem('msgMovimento', tipoMovimentoSelecionado === 'entrada' ? 'Entrada registrada.' : 'Saída registrada.', 'ok');
+      const acao = tipoMovimentoSelecionado === 'entrada' ? 'Entrada registrada.' : 'Saída registrada.';
+      mostrarMensagem('msgMovimento', resultado.jaExistia ? `Item já existente. ${acao}` : `Item novo cadastrado. ${acao}`, 'ok');
     }
     evt.target.reset();
     limparSeletorCor(document.querySelector('#modalMovimento .seletor-cores'));
@@ -879,7 +880,7 @@ function ligarEventosRequisicoes(container, todosItens) {
       const idFluig = card.querySelector('.in-idfluig').value.trim();
       const nome = card.querySelector('.in-nome').value.trim();
       if (!idFluig) return;
-      definirModoFormMovimento(true);
+      definirModoFormMovimento(false);
       document.getElementById('movIdFluig').value = idFluig;
       document.getElementById('movNome').value = nome;
       abrirSheet('modalMovimento');
@@ -924,7 +925,7 @@ function ligarEventosRequisicoes(container, todosItens) {
       const card = link.closest('.card-requisicao');
       const idFluig = card.querySelector('.in-idfluig').value.trim();
       const nome = card.querySelector('.in-nome').value.trim();
-      definirModoFormMovimento(true);
+      definirModoFormMovimento(false);
       document.getElementById('movIdFluig').value = idFluig;
       document.getElementById('movNome').value = nome;
       abrirSheet('modalMovimento');

@@ -33,58 +33,41 @@ async function reenviarFotos() {
 }
 
 async function migrarDuplicadosEstoque() {
+  // Corrige SÓ um problema bem específico e seguro: um item cujo código
+  // ficou guardado como número (ex: 10718853) em vez de texto (ex:
+  // "10.718.853"), por causa de como o Google Sheets às vezes entende
+  // números com ponto. Aqui só convertemos o TIPO do mesmo valor — nunca
+  // juntamos itens que tenham códigos diferentes, por mais parecidos que
+  // sejam, pra nunca correr o risco de misturar dois itens diferentes.
   const todos = await BramDB.getAll('estoque');
-  const grupos = {};
   for (const item of todos) {
-    const chave = normalizarCodigo_(item.idFluig) || String(item.idFluig);
-    (grupos[chave] = grupos[chave] || []).push(item);
-  }
+    if (typeof item.idFluig === 'string') continue;
+    const chaveTexto = String(item.idFluig);
+    const jaExisteComoTexto = await BramDB.get('estoque', chaveTexto);
 
-  for (const chave in grupos) {
-    const grupo = grupos[chave];
-    const jaCorreto = grupo.length === 1 && typeof grupo[0].idFluig === 'string';
-    if (jaCorreto) continue;
-
-    grupo.sort((a, b) => contarCamposPreenchidos(b) - contarCamposPreenchidos(a));
-    const base = grupo[0];
-    // Mantém o código "de verdade" já usado pelo item mais completo — só
-    // normaliza pra texto, sem mudar dígitos/pontos de quem já estava certo.
-    const itemUnificado = { ...base, idFluig: String(base.idFluig) };
-
-    // Importante: só limpa duplicados NESTE aparelho (mescla localmente,
-    // pra você ver só um item na lista). NÃO apaga nada na planilha
-    // automaticamente — se dois aparelhos decidirem coisas diferentes ao
-    // mesmo tempo sobre qual versão é "a certa", apagar dos dois lados
-    // pode acabar apagando as duas variantes da planilha. Duplicata na
-    // planilha em si precisa ser removida manualmente por você, com calma.
-    for (const item of grupo) {
-      await BramDB.del('estoque', item.idFluig);
+    await BramDB.del('estoque', item.idFluig);
+    if (jaExisteComoTexto) {
+      // Mesmo valor exato guardado duas vezes (uma como número, outra já
+      // como texto) — mantém a versão com mais campos preenchidos.
+      const vencedor = contarCamposPreenchidos(jaExisteComoTexto) >= contarCamposPreenchidos(item) ? jaExisteComoTexto : { ...item, idFluig: chaveTexto };
+      await BramDB.put('estoque', vencedor);
+      await BramDB.enfileirar('estoque', 'upsert', vencedor);
+    } else {
+      const itemCorrigido = { ...item, idFluig: chaveTexto };
+      await BramDB.put('estoque', itemCorrigido);
+      await BramDB.enfileirar('estoque', 'upsert', itemCorrigido);
     }
-    await BramDB.put('estoque', itemUnificado);
-    await BramDB.enfileirar('estoque', 'upsert', itemUnificado);
   }
-}
-
-function normalizarCodigo_(codigo) {
-  return String(codigo || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 }
 
 async function obterOuCriarEstoque(idFluig, nome, unidade) {
   idFluig = String(idFluig);
+  // Correspondência SEMPRE exata pelo código — nunca "aproximada". Juntar
+  // itens por código parecido já causou o item errado ganhar dados de
+  // outro item (ex: uma arruela) por engano. É mais seguro criar um item
+  // "novo" que não existia (você pode corrigir/apagar depois) do que
+  // arriscar misturar dois itens diferentes que só têm código parecido.
   let item = await BramDB.get('estoque', idFluig);
-
-  if (!item) {
-    // Antes de criar um item novo, procura se já existe um com o mesmo
-    // código "de verdade", só que digitado/formatado diferente (com ou
-    // sem ponto, espaço, traço) — evita duplicar o mesmo item por causa
-    // de uma pequena diferença de formatação.
-    const normalizado = normalizarCodigo_(idFluig);
-    if (normalizado) {
-      const todos = await BramDB.getAll('estoque');
-      item = todos.find((i) => normalizarCodigo_(i.idFluig) === normalizado);
-    }
-  }
-
   if (!item) {
     item = { idFluig, nome: nome || idFluig, quantidade: 0, unidade: unidade || 'un', local: '', prateleira: '', coluna: '', linha: '', foto: '', pn: '', marca: '', obs: '', itemCritico: '' };
   }
@@ -97,6 +80,10 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
     throw new Error('Informe o item e uma quantidade maior que zero.');
   }
 
+  // Lançar entrada/saída pelo botão + É a forma certa de cadastrar um item
+  // novo (com uma quantidade inicial). Editar item é diferente — só altera
+  // um item que já existe, nunca cria.
+  const jaExistia = !!(await BramDB.get('estoque', String(idFluig)));
   const item = await obterOuCriarEstoque(idFluig, nome, unidade);
   if (tipo === 'saida' && item.quantidade < quantidade) {
     throw new Error(`Estoque insuficiente: há ${item.quantidade} ${item.unidade} de "${item.nome}".`);
@@ -132,14 +119,19 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
   await BramDB.put('movimentos', mov);
   await BramDB.enfileirar('movimentos', 'upsert', mov);
 
-  return { item, mov };
+  return { item, mov, jaExistia };
 }
 
 // Exclui um item de estoque por completo (não é uma saída — some da lista).
 // Atualiza só os dados cadastrais do item (local, prateleira, coluna, linha,
 // foto, P/N, marca, observação) — não mexe na quantidade nem gera movimento.
 async function atualizarDadosItem({ idFluig, nome, local, prateleira, coluna, linha, foto, pn, marca, observacao, itemCritico }) {
-  const item = await obterOuCriarEstoque(idFluig, nome);
+  // "Editar item" só ALTERA um item que já existe — quem cria item novo é
+  // o botão + (Lançar movimento).
+  const item = await BramDB.get('estoque', String(idFluig));
+  if (!item) {
+    throw new Error(`Nenhum item encontrado com o código "${idFluig}". Pra cadastrar um item novo, use o botão + (Lançar movimento).`);
+  }
   if (nome) item.nome = nome;
   if (local) item.local = local;
   if (prateleira) item.prateleira = prateleira;
@@ -233,13 +225,13 @@ async function adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem, quanti
   if (!requisicao) throw new Error('Requisição não encontrada.');
   quantidadeSolicitada = paraInteiro(quantidadeSolicitada);
 
-  // Requisição é só pedido externo — nunca mexe no estoque de bordo aqui.
-  // Só garante que o item exista na lista de Estoque (com 0 unidades, se for
-  // novo), pra aparecer certinho quando for dar entrada nele manualmente,
-  // ou quando "Receber" (Operação) entrar a quantidade de verdade depois.
-  const itemEstoque = await obterOuCriarEstoque(idFluig, nomeItem);
-  await BramDB.put('estoque', itemEstoque);
-  await BramDB.enfileirar('estoque', 'upsert', itemEstoque);
+  // Nunca cria um item de estoque sozinho — só quem cadastra item novo é
+  // você, pelo "Cadastrar item novo" (ou "Editar item"). Aqui só aceitamos
+  // um item que já exista de verdade no Estoque.
+  const itemEstoque = await BramDB.get('estoque', String(idFluig));
+  if (!itemEstoque) {
+    throw new Error(`Nenhum item encontrado com o código "${idFluig}". Toque em "Não achou o item? Cadastrar item novo" primeiro.`);
+  }
 
   const item = {
     id: uid(),
@@ -267,9 +259,10 @@ async function editarItemRequisicao({ itemId, idFluig, nomeItem, quantidadeSolic
     throw new Error(`Não é possível colocar uma quantidade menor que a já recebida (${item.qtdeRecebida}).`);
   }
 
-  const itemEstoque = await obterOuCriarEstoque(idFluig, nomeItem);
-  await BramDB.put('estoque', itemEstoque);
-  await BramDB.enfileirar('estoque', 'upsert', itemEstoque);
+  const itemEstoque = await BramDB.get('estoque', String(idFluig));
+  if (!itemEstoque) {
+    throw new Error(`Nenhum item encontrado com o código "${idFluig}". Cadastre esse item primeiro.`);
+  }
 
   item.idFluig = idFluig;
   item.nomeItem = nomeItem || itemEstoque.nome;
@@ -302,7 +295,10 @@ async function receberItemRequisicao({ itemId, quantidadeAgora, local, prateleir
   // Só Pedido mexe no estoque. Desembarque/Cadastro são só registro.
   if (requisicao.tipoReq === 'Pedido' && requisicao.tipo === 'OPERAÇÃO') {
     // Operação: ao concluir/receber, o item vai direto pro estoque.
-    const itemEstoque = await obterOuCriarEstoque(item.idFluig, item.nomeItem);
+    const itemEstoque = await BramDB.get('estoque', String(item.idFluig));
+    if (!itemEstoque) {
+      throw new Error(`Nenhum item encontrado com o código "${item.idFluig}" no Estoque. Cadastre esse item primeiro.`);
+    }
     if (!itemEstoque.local && !local) {
       throw new Error('LOCAL_NECESSARIO'); // sinalizador especial para a UI pedir o local
     }
