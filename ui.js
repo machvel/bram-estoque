@@ -587,6 +587,7 @@ function grupoStatusRequisicao(status) {
 }
 
 
+const LINK_FLUIG_SOLICITACOES = 'https://fluig.bramoffshore.com.br/portal/p/001/wMinhasSolicitacoes';
 let filtroStatusAtual = 'abertas';
 let requisicaoAbertaId = null; // qual card continua expandido entre re-renderizações
 let formItemAbertoId = null; // em qual card o formulário de +item continua visível
@@ -720,6 +721,7 @@ function renderCardRequisicao(r, todosItens) {
         ${r.helm ? `<div class="campo-detalhe-vertical"><span class="rotulo">HELM</span><strong class="valor">${r.helm}</strong></div>` : ''}
         <div class="campo-detalhe-vertical"><span class="rotulo">Observação</span><strong class="valor">${r.obs || '—'}</strong></div>
         <button type="button" class="botao botao-texto btn-editar-requisicao" data-req="${r.id}" style="margin-top:8px">Editar requisição</button>
+        <a href="${LINK_FLUIG_SOLICITACOES}" target="_blank" rel="noopener" class="botao botao-texto" style="display:block; text-align:left">Ver status no Fluig ↗</a>
 
         <div class="lista-cabecalho" style="margin-top:16px"><h2>Itens relacionados (${itens.length})</h2></div>
         <div class="tabela-itens-req">
