@@ -717,6 +717,7 @@ function renderCardRequisicao(r, todosItens) {
         <div class="campo-detalhe-vertical"><span class="rotulo">Data</span><strong class="valor">${fmtData(r.data)}</strong></div>
         <div class="campo-detalhe-vertical"><span class="rotulo">Pedido status</span><strong class="valor">${r.status}</strong></div>
         ${r.helm ? `<div class="campo-detalhe-vertical"><span class="rotulo">HELM</span><strong class="valor">${r.helm}</strong></div>` : ''}
+        <div class="campo-detalhe-vertical"><span class="rotulo">Observação</span><strong class="valor">${r.obs || '—'}</strong></div>
         <button type="button" class="botao botao-texto btn-editar-requisicao" data-req="${r.id}" style="margin-top:8px">Editar requisição</button>
 
         <div class="lista-cabecalho" style="margin-top:16px"><h2>Itens relacionados (${itens.length})</h2></div>
