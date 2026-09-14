@@ -125,13 +125,28 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
 // Exclui um item de estoque por completo (não é uma saída — some da lista).
 // Atualiza só os dados cadastrais do item (local, prateleira, coluna, linha,
 // foto, P/N, marca, observação) — não mexe na quantidade nem gera movimento.
-async function atualizarDadosItem({ idFluig, nome, local, prateleira, coluna, linha, foto, pn, marca, observacao, itemCritico, quantidade }) {
+async function atualizarDadosItem({ idFluigOriginal, idFluig, nome, local, prateleira, coluna, linha, foto, pn, marca, observacao, itemCritico, quantidade }) {
   // "Editar item" só ALTERA um item que já existe — quem cria item novo é
-  // o botão + (Lançar movimento).
-  const item = await BramDB.get('estoque', String(idFluig));
+  // o botão + (Lançar movimento). Busca sempre pelo código ORIGINAL (o que
+  // já estava salvo), não pelo que a pessoa está digitando agora — assim
+  // dá pra corrigir o próprio código sem o app achar que "não existe".
+  const codigoOriginal = String(idFluigOriginal || idFluig);
+  const item = await BramDB.get('estoque', codigoOriginal);
   if (!item) {
-    throw new Error(`Nenhum item encontrado com o código "${idFluig}". Pra cadastrar um item novo, use o botão + (Lançar movimento).`);
+    throw new Error(`Nenhum item encontrado com o código "${codigoOriginal}". Pra cadastrar um item novo, use o botão + (Lançar movimento).`);
   }
+
+  const novoCodigo = String(idFluig);
+  const mudandoCodigo = novoCodigo !== codigoOriginal;
+  if (mudandoCodigo) {
+    // Só permite trocar o código se o novo código ainda não pertencer a
+    // outro item — nunca deixamos dois itens ficarem com o mesmo código.
+    const jaExisteOutro = await BramDB.get('estoque', novoCodigo);
+    if (jaExisteOutro) {
+      throw new Error(`Já existe outro item com o código "${novoCodigo}" ("${jaExisteOutro.nome}"). Escolha um código diferente.`);
+    }
+  }
+
   if (quantidade !== undefined && quantidade !== '') item.quantidade = paraInteiro(quantidade);
   if (nome) item.nome = nome;
   if (local) item.local = local;
@@ -143,7 +158,12 @@ async function atualizarDadosItem({ idFluig, nome, local, prateleira, coluna, li
   if (marca) item.marca = marca;
   if (itemCritico) item.itemCritico = itemCritico === 'Sim';
   if (observacao) item.obs = observacao;
+  item.idFluig = novoCodigo;
 
+  if (mudandoCodigo) {
+    await BramDB.del('estoque', codigoOriginal);
+    await BramDB.enfileirar('estoque', 'delete', { idFluig: codigoOriginal });
+  }
   await BramDB.put('estoque', item);
   await BramDB.enfileirar('estoque', 'upsert', item);
   return item;

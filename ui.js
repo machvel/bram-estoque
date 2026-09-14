@@ -402,6 +402,7 @@ document.getElementById('btnEditarDetalhes').addEventListener('click', () => {
   document.querySelector('.app-shell').classList.remove('detalhe-aberto');
   const item = itemDetalheAtual;
   definirModoFormMovimento(true);
+  document.getElementById('formMovimento').dataset.idFluigOriginal = item.idFluig;
   document.getElementById('movQuantidadeAtual').value = item.quantidade;
   document.getElementById('movIdFluig').value = item.idFluig;
   document.getElementById('movNome').value = item.nome;
@@ -457,7 +458,8 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
   try {
     if (modoEdicaoItem) {
       const qtdEditada = document.getElementById('movQuantidadeAtual').value;
-      await BramApp.atualizarDadosItem({ ...dadosComuns, quantidade: qtdEditada });
+      const idFluigOriginal = document.getElementById('formMovimento').dataset.idFluigOriginal;
+      await BramApp.atualizarDadosItem({ ...dadosComuns, idFluigOriginal, quantidade: qtdEditada });
       mostrarMensagem('msgMovimento', 'Item atualizado.', 'ok');
     } else {
       const resultado = await BramApp.registrarMovimento({
