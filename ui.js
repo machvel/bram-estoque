@@ -478,6 +478,42 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
     await atualizarStatusConexao();
     setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); }, 500);
   } catch (e) {
+    if (e.message === 'ITEM_PARECIDO' && e.itemParecido) {
+      const p = e.itemParecido;
+      const usarExistente = confirm(
+        `Não achei o código "${dadosComuns.idFluig}" exatamente, mas encontrei um item bem parecido:\n\n"${p.nome}" (código ${p.idFluig}, ${p.quantidade} ${p.unidade || 'un'} em estoque)\n\nÉ esse mesmo item? Toque OK pra usar ele, ou Cancelar se for um item realmente diferente.`
+      );
+      try {
+        if (usarExistente) {
+          const resultado = await BramApp.registrarMovimento({
+            ...dadosComuns,
+            idFluig: p.idFluig,
+            tipo: tipoMovimentoSelecionado,
+            quantidade: document.getElementById('movQuantidade').value,
+            responsavel: document.getElementById('movResponsavel').value.trim(),
+          });
+          mostrarMensagem('msgMovimento', `Item já existente. ${tipoMovimentoSelecionado === 'entrada' ? 'Entrada registrada.' : 'Saída registrada.'}`, 'ok');
+        } else {
+          const resultado = await BramApp.registrarMovimento({
+            ...dadosComuns,
+            tipo: tipoMovimentoSelecionado,
+            quantidade: document.getElementById('movQuantidade').value,
+            responsavel: document.getElementById('movResponsavel').value.trim(),
+            confirmadoComoNovo: true,
+          });
+          mostrarMensagem('msgMovimento', `Item novo cadastrado. ${tipoMovimentoSelecionado === 'entrada' ? 'Entrada registrada.' : 'Saída registrada.'}`, 'ok');
+        }
+        evt.target.reset();
+        limparSeletorCor(document.querySelector('#modalMovimento .seletor-cores'));
+        limparFoto();
+        await renderEstoque();
+        await atualizarStatusConexao();
+        setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); }, 500);
+      } catch (e2) {
+        mostrarMensagem('msgMovimento', e2.message, 'erro');
+      }
+      return;
+    }
     mostrarMensagem('msgMovimento', e.message, 'erro');
   }
 });

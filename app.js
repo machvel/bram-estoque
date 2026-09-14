@@ -60,6 +60,13 @@ async function migrarDuplicadosEstoque() {
   }
 }
 
+// Usada só pra SUGERIR um possível item parecido antes de criar um novo —
+// nunca pra decidir sozinho que dois itens são o mesmo (isso é sempre a
+// pessoa que confirma).
+function normalizarParaComparar_(codigo) {
+  return String(codigo || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
 async function obterOuCriarEstoque(idFluig, nome, unidade) {
   idFluig = String(idFluig);
   // Correspondência SEMPRE exata pelo código — nunca "aproximada". Juntar
@@ -74,7 +81,7 @@ async function obterOuCriarEstoque(idFluig, nome, unidade) {
   return item;
 }
 
-async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, local, prateleira, coluna, linha, responsavel, observacao, foto, pn, marca, itemCritico }) {
+async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, local, prateleira, coluna, linha, responsavel, observacao, foto, pn, marca, itemCritico, confirmadoComoNovo }) {
   quantidade = paraInteiro(quantidade);
   if (!idFluig || !quantidade || quantidade <= 0) {
     throw new Error('Informe o item e uma quantidade maior que zero.');
@@ -84,6 +91,24 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
   // novo (com uma quantidade inicial). Editar item é diferente — só altera
   // um item que já existe, nunca cria.
   const jaExistia = !!(await BramDB.get('estoque', String(idFluig)));
+
+  if (!jaExistia && !confirmadoComoNovo) {
+    // Antes de criar um item novo, procura se já existe algo com o código
+    // bem parecido (só formatado diferente, com/sem ponto etc) — mas NUNCA
+    // junta sozinho. Só avisa, pra pessoa decidir: é o mesmo item (usa o
+    // código certo) ou é mesmo um item novo (confirma e cria)?
+    const normalizado = normalizarParaComparar_(idFluig);
+    if (normalizado) {
+      const todos = await BramDB.getAll('estoque');
+      const parecido = todos.find((i) => normalizarParaComparar_(i.idFluig) === normalizado);
+      if (parecido) {
+        const erro = new Error('ITEM_PARECIDO');
+        erro.itemParecido = parecido;
+        throw erro;
+      }
+    }
+  }
+
   const item = await obterOuCriarEstoque(idFluig, nome, unidade);
   if (tipo === 'saida' && item.quantidade < quantidade) {
     throw new Error(`Estoque insuficiente: há ${item.quantidade} ${item.unidade} de "${item.nome}".`);
