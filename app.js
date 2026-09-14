@@ -67,6 +67,15 @@ function normalizarParaComparar_(codigo) {
   return String(codigo || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 }
 
+// O ID Fluig de verdade sempre tem ponto (ex: 10.508822). Exige isso na
+// hora de cadastrar/trocar o código, pra nunca salvar um código sem ponto
+// por engano (esquecimento, ou número "cru" copiado de algum lugar).
+function validarPontoNoIdFluig_(idFluig) {
+  if (!String(idFluig).includes('.')) {
+    throw new Error(`O código "${idFluig}" precisa ter ponto (ex: 10.508822). Confira e digite de novo.`);
+  }
+}
+
 async function obterOuCriarEstoque(idFluig, nome, unidade) {
   idFluig = String(idFluig);
   // Correspondência SEMPRE exata pelo código — nunca "aproximada". Juntar
@@ -109,6 +118,7 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
     }
   }
 
+  if (!jaExistia) validarPontoNoIdFluig_(idFluig);
   const item = await obterOuCriarEstoque(idFluig, nome, unidade);
   if (tipo === 'saida' && item.quantidade < quantidade) {
     throw new Error(`Estoque insuficiente: há ${item.quantidade} ${item.unidade} de "${item.nome}".`);
@@ -164,6 +174,7 @@ async function atualizarDadosItem({ idFluigOriginal, idFluig, nome, local, prate
   const novoCodigo = String(idFluig);
   const mudandoCodigo = novoCodigo !== codigoOriginal;
   if (mudandoCodigo) {
+    validarPontoNoIdFluig_(novoCodigo);
     // Só permite trocar o código se o novo código ainda não pertencer a
     // outro item — nunca deixamos dois itens ficarem com o mesmo código.
     const jaExisteOutro = await BramDB.get('estoque', novoCodigo);
