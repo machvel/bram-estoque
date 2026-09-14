@@ -152,6 +152,12 @@ async function abrirScanner(aoLer) {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     video.srcObject = stream;
+    // Alguns iPhones não obedecem só o atributo "autoplay" em vídeo criado
+    // por JS — força as propriedades certas e o play() explicitamente.
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('webkit-playsinline', 'true');
+    await video.play().catch(() => {});
   } catch (e) {
     dica.textContent = 'Não foi possível acessar a câmera. Verifique a permissão do navegador.';
     return;
