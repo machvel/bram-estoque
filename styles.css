@@ -1003,3 +1003,17 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   .requisicoes-topo-fixo { top: 0; }
   .filtro-status-req { top: 0; }
 }
+
+.scanner-btn-iniciar {
+  position: absolute;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--primaria);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 5;
+}

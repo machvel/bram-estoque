@@ -3,16 +3,14 @@
 // Sempre usa a API padrão BarcodeDetector do navegador. Em navegadores que
 // já têm isso embutido (Chrome/Android), usa direto — rápido e 100% offline.
 // Em navegadores sem essa leitura embutida (Safari/iPhone), carrega uma
-// biblioteca (zbar-wasm) que "se disfarça" de BarcodeDetector, então o
-// resto do código nem precisa saber a diferença. zbar-wasm é baseada numa
-// biblioteca C madura (ZBar) e costuma ler com mais precisão que
-// bibliotecas 100% JavaScript.
+// biblioteca ("barcode-detector", baseada em ZXing) que registra sozinha
+// o mesmo window.BarcodeDetector, então o resto do código nem precisa saber
+// a diferença. É a biblioteca mais usada e mais bem mantida pra isso hoje.
 //
 // Precisa de internet só na primeira vez que usar a câmera nesse
 // aparelho — depois disso o app guarda em cache sozinho (veja sw.js).
 
-const ZBAR_WASM_URL = 'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js';
-const POLYFILL_URL = 'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.20/dist/index.js';
+const BARCODE_LIB_URL = 'https://cdn.jsdelivr.net/npm/barcode-detector@2/dist/es/side-effects.min.js';
 let carregandoPolyfill = null;
 
 // Exige a MESMA leitura se repetir algumas vezes seguidas antes de aceitar
@@ -24,9 +22,10 @@ function suportaLeituraCamera() {
   return 'mediaDevices' in navigator; // câmera em si — o método de leitura é escolhido depois
 }
 
-function carregarScript_(src) {
+function carregarScriptModulo_(src) {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
+    script.type = 'module';
     script.src = src;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Não foi possível carregar o leitor de código de barras (precisa de internet na primeira vez).'));
@@ -34,33 +33,24 @@ function carregarScript_(src) {
   });
 }
 
-function carregarZbarEPolyfill_() {
-  return carregarScript_(ZBAR_WASM_URL).then(() => carregarScript_(POLYFILL_URL));
-}
-
 // Garante que window.BarcodeDetector exista — usa a nativa se o navegador
-// já tiver, senão carrega o substituto (zbar-wasm) uma vez só. Se os
-// arquivos carregarem "com sucesso" mas vierem incompletos (ex: cache
-// quebrado no meio do caminho), tenta de novo uma vez, ignorando qualquer
-// cache antigo.
+// já tiver, senão carrega o substituto uma vez só. Se o arquivo carregar
+// "com sucesso" mas vier incompleto (ex: cache quebrado no meio do
+// caminho), tenta de novo uma vez, ignorando qualquer cache antigo.
 function garantirBarcodeDetector() {
   if ('BarcodeDetector' in window) return Promise.resolve();
   if (carregandoPolyfill) return carregandoPolyfill;
 
-  const pronto = () => window.barcodeDetectorPolyfill && window.barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-
-  carregandoPolyfill = carregarZbarEPolyfill_()
+  carregandoPolyfill = carregarScriptModulo_(BARCODE_LIB_URL)
     .then(() => {
-      if (pronto()) return;
+      if ('BarcodeDetector' in window) return;
       // Veio incompleto — tenta de novo forçando ignorar cache antigo.
-      const semCache = '?v=' + Date.now();
-      return carregarScript_(ZBAR_WASM_URL + semCache).then(() => carregarScript_(POLYFILL_URL + semCache));
+      return carregarScriptModulo_(BARCODE_LIB_URL + '?v=' + Date.now());
     })
     .then(() => {
-      if (!pronto()) {
+      if (!('BarcodeDetector' in window)) {
         throw new Error('O leitor de código de barras não carregou corretamente. Verifique sua internet e tente de novo.');
       }
-      window.BarcodeDetector = window.barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
     })
     .catch((e) => {
       carregandoPolyfill = null; // permite tentar de novo na próxima vez que abrir o scanner
@@ -74,7 +64,9 @@ function criarOverlay() {
   overlay.className = 'scanner-overlay';
   overlay.innerHTML = `
     <div class="scanner-caixa">
-      <div class="scanner-camera-area"><video class="scanner-video" autoplay playsinline muted></video></div>
+      <div class="scanner-camera-area">
+        <video class="scanner-video" autoplay playsinline muted webkit-playsinline="true"></video>
+      </div>
       <p class="scanner-dica">Aponte a câmera para o código de barras</p>
       <button class="botao scanner-fechar">Cancelar</button>
     </div>
@@ -137,31 +129,35 @@ async function abrirScanner(aoLer) {
     aoLer(codigo);
   }, mostrarProgresso);
 
-  if (!('BarcodeDetector' in window)) {
-    dica.textContent = 'Carregando leitor de código de barras…';
-  }
-  try {
-    await garantirBarcodeDetector();
-  } catch (e) {
-    dica.textContent = e.message;
-    return;
-  }
-  if (encerrado) return;
-  dica.textContent = 'Aponte a câmera para o código de barras';
-
+  // Liga a câmera JÁ, ainda no mesmo toque que abriu o scanner — importante
+  // pro iOS aceitar o play() automático sem precisar de um botão extra.
+  // A biblioteca de leitura (quando precisa) carrega em paralelo, não antes.
+  const promessaCarregarLeitor = garantirBarcodeDetector();
+  let cameraOk = false;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     video.srcObject = stream;
-    // Alguns iPhones não obedecem só o atributo "autoplay" em vídeo criado
-    // por JS — força as propriedades certas e o play() explicitamente.
     video.muted = true;
     video.playsInline = true;
     video.setAttribute('webkit-playsinline', 'true');
     await video.play().catch(() => {});
+    cameraOk = true;
   } catch (e) {
     dica.textContent = 'Não foi possível acessar a câmera. Verifique a permissão do navegador.';
+  }
+  if (encerrado) return;
+
+  if (!('BarcodeDetector' in window)) {
+    dica.textContent = cameraOk ? 'Carregando leitor de código de barras…' : dica.textContent;
+  }
+  try {
+    await promessaCarregarLeitor;
+  } catch (e) {
+    dica.textContent = e.message;
     return;
   }
+  if (encerrado || !cameraOk) return;
+  dica.textContent = 'Aponte a câmera para o código de barras';
 
   const detector = new BarcodeDetector({
     formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'],
