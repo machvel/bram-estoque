@@ -634,6 +634,7 @@ let filtroStatusAtual = 'abertas';
 let requisicaoAbertaId = null; // qual card continua expandido entre re-renderizações
 let formItemAbertoId = null; // em qual card o formulário de +item continua visível
 let ordenacaoManual = null; // { campo: 'reqNumero' | 'data', direcao: 'asc' | 'desc' } — null = ordenação padrão por tipo
+let tiposExpandidosReq = {}; // { Pedido: true/false, Desembarque: ..., Cadastro: ... } — padrão: todos abertos
 const NOMES_FILTRO = { todas: 'Todas', abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
 
 async function renderRequisicoes() {
@@ -678,7 +679,7 @@ async function renderRequisicoes() {
       const ordemA = ORDEM_TIPO_REQ[a.tipoReq] ?? 99;
       const ordemB = ORDEM_TIPO_REQ[b.tipoReq] ?? 99;
       if (ordemA !== ordemB) return ordemA - ordemB;
-      return a.data < b.data ? 1 : -1;
+      return (Number(b.reqNumero) || 0) - (Number(a.reqNumero) || 0);
     });
   const container = document.getElementById('listaRequisicoes');
 
@@ -688,17 +689,28 @@ async function renderRequisicoes() {
   }
 
   const NOMES_TIPO_REQ = { Pedido: 'Pedido', Desembarque: 'Desembarque', Cadastro: 'Cadastro' };
-  let tipoAnterior = null;
-  const linhasComCabecalho = requisicoes.map((r) => {
-    const tipoAtual = r.tipoReq || 'Pedido';
-    let cabecalhoTipo = '';
-    if (!ordenacaoManual && tipoAtual !== tipoAnterior) {
-      const quantos = requisicoes.filter((x) => (x.tipoReq || 'Pedido') === tipoAtual).length;
-      cabecalhoTipo = `<div class="subcabecalho-tipo-req">${NOMES_TIPO_REQ[tipoAtual] || tipoAtual} (${quantos})</div>`;
-      tipoAnterior = tipoAtual;
-    }
-    return cabecalhoTipo + renderCardRequisicao(r, todosItens);
-  }).join('');
+  let linhasComCabecalho;
+  if (ordenacaoManual) {
+    linhasComCabecalho = requisicoes.map((r) => renderCardRequisicao(r, todosItens)).join('');
+  } else {
+    const grupos = {};
+    requisicoes.forEach((r) => {
+      const tipo = r.tipoReq || 'Pedido';
+      (grupos[tipo] = grupos[tipo] || []).push(r);
+    });
+    linhasComCabecalho = Object.keys(grupos).map((tipo) => {
+      const lista = grupos[tipo];
+      const expandido = tiposExpandidosReq[tipo] !== false; // padrão: aberto
+      return `
+        <button type="button" class="subcabecalho-tipo-req subcabecalho-tipo-req--clicavel" data-tipo="${tipo}">
+          <span>${NOMES_TIPO_REQ[tipo] || tipo} (${lista.length})</span>
+          <span class="seta-grupo ${expandido ? 'aberta' : ''}">▾</span>
+        </button>
+        <div class="corpo-tipo-req ${expandido ? '' : 'oculto-flex'}">
+          ${lista.map((r) => renderCardRequisicao(r, todosItens)).join('')}
+        </div>`;
+    }).join('');
+  }
 
   const setaOrdenacao = (campo) => {
     if (!ordenacaoManual || ordenacaoManual.campo !== campo) return '';
@@ -835,6 +847,14 @@ function ligarEventosRequisicoes(container, todosItens) {
       } else {
         ordenacaoManual = { campo, direcao: 'asc' };
       }
+      renderRequisicoes();
+    });
+  });
+
+  container.querySelectorAll('.subcabecalho-tipo-req--clicavel').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tipo = btn.dataset.tipo;
+      tiposExpandidosReq[tipo] = tiposExpandidosReq[tipo] === false; // inverte (padrão era aberto)
       renderRequisicoes();
     });
   });

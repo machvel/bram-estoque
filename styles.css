@@ -965,6 +965,19 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   padding: 12px 2px 6px;
 }
 .subcabecalho-tipo-req:first-child { padding-top: 2px; }
+.subcabecalho-tipo-req--clicavel {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+.subcabecalho-tipo-req--clicavel .seta-grupo { transition: transform 0.15s; }
+.subcabecalho-tipo-req--clicavel .seta-grupo.aberta { transform: rotate(180deg); }
+.corpo-tipo-req.oculto-flex { display: none; }
 
 /* Seta de voltar no topo do detalhe do item, estilo AppSheet */
 .btn-voltar-detalhe {
