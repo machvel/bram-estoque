@@ -180,7 +180,22 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M21 6H8a5 5 0 000 10h13"/><path d="M7 22l-4-4 4-4"/><path d="M3 18h13a5 5 0 000-10"/></svg>
       Sincronizar
     </button>
+    <button class="drawer-item oculto-flex" id="btnInstalarApp">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      Instalar app
+    </button>
   </nav>
+
+  <!-- Modal com o passo a passo de instalação no iPhone (Safari não deixa instalar em 1 toque) -->
+  <div class="modal oculta" id="modalInstalarIOS">
+    <div class="modal-caixa" style="text-align:left">
+      <h3>Instalar no iPhone</h3>
+      <p style="margin:0 0 12px; color:var(--texto-fraco); font-size:0.85rem">O Safari não permite instalar em 1 toque — mas é rápido, só 2 passos:</p>
+      <p style="margin:0 0 10px"><strong>1.</strong> Toque no ícone de compartilhar <span style="font-size:1.2rem">⬆️</span> (embaixo, no meio da tela)</p>
+      <p style="margin:0 0 16px"><strong>2.</strong> Role a lista e toque em <strong>"Adicionar à Tela de Início"</strong></p>
+      <button type="button" class="botao botao-primario botao-bloco" id="btnFecharInstalarIOS">Entendi</button>
+    </div>
+  </div>
 
   <!-- Bottom sheet: registrar movimento de estoque -->
   <div class="modal-sheet oculta" id="modalMovimento">

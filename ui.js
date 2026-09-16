@@ -1281,6 +1281,41 @@ async function puxarAutomaticamente() {
   }
 }
 
+// ---------- Instalar como app (1 toque no Android, passo a passo no iPhone) ----------
+let promptInstalacaoCapturado = null;
+const rodandoInstalado = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+if (!rodandoInstalado) {
+  document.getElementById('btnInstalarApp').classList.remove('oculto-flex');
+}
+
+window.addEventListener('beforeinstallprompt', (evt) => {
+  evt.preventDefault();
+  promptInstalacaoCapturado = evt;
+  document.getElementById('btnInstalarApp').classList.remove('oculto-flex');
+});
+
+document.getElementById('btnInstalarApp').addEventListener('click', async () => {
+  fecharDrawer();
+  if (promptInstalacaoCapturado) {
+    promptInstalacaoCapturado.prompt();
+    await promptInstalacaoCapturado.userChoice;
+    promptInstalacaoCapturado = null;
+  } else {
+    // Sem o prompt automático (sempre o caso no iPhone/Safari) — mostra o passo a passo.
+    document.getElementById('modalInstalarIOS').classList.remove('oculta');
+  }
+});
+
+document.getElementById('btnFecharInstalarIOS').addEventListener('click', () => {
+  document.getElementById('modalInstalarIOS').classList.add('oculta');
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('btnInstalarApp').classList.add('oculto-flex');
+});
+
 (async function iniciar() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
