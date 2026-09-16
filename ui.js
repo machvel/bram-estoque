@@ -50,6 +50,66 @@ function abaAtiva() {
     : 'sincronizar';
 }
 
+// ---------- Código de acesso (controla quem pode usar o app) ----------
+// Cada pessoa tem um código próprio, conferido com a aba "Acessos" da
+// planilha — pra tirar o acesso de alguém, é só apagar a linha dela lá,
+// sem mexer no código do app. Depois de liberado uma vez, o aparelho
+// continua funcionando offline normalmente; a reconferência com a
+// planilha acontece sozinha, em segundo plano, sempre que tiver internet
+// — se o código tiver sido removido, o acesso é bloqueado de novo na
+// próxima vez que abrir com conexão.
+const CHAVE_ACESSO_LOCAL = 'bram_acesso_liberado';
+const CHAVE_ACESSO_CODIGO = 'bram_acesso_codigo';
+
+async function validarAcessoNoServidor(codigo) {
+  try {
+    const resultado = await BramSync.validarCodigoAcessoServidor(codigo);
+    return resultado.ok === true;
+  } catch (e) {
+    return null; // não deu pra checar agora (sem internet, etc) — sem informação
+  }
+}
+
+function bloquearAcesso() {
+  localStorage.removeItem(CHAVE_ACESSO_LOCAL);
+  localStorage.removeItem(CHAVE_ACESSO_CODIGO);
+  document.getElementById('telaAcesso').classList.remove('oculta');
+}
+
+if (localStorage.getItem(CHAVE_ACESSO_LOCAL) === 'sim') {
+  document.getElementById('telaAcesso').classList.add('oculta');
+  // Reconfere em segundo plano, sem travar o uso do app enquanto isso.
+  const codigoSalvo = localStorage.getItem(CHAVE_ACESSO_CODIGO);
+  if (codigoSalvo && navigator.onLine) {
+    validarAcessoNoServidor(codigoSalvo).then((valido) => {
+      if (valido === false) bloquearAcesso();
+    });
+  }
+}
+
+document.getElementById('formAcesso').addEventListener('submit', async (evt) => {
+  evt.preventDefault();
+  const digitado = document.getElementById('inputCodigoAcesso').value.trim();
+  const botao = evt.target.querySelector('button[type="submit"]');
+  botao.disabled = true;
+  mostrarMensagem('msgAcesso', 'Verificando…');
+
+  const valido = await validarAcessoNoServidor(digitado);
+  botao.disabled = false;
+
+  if (valido === true) {
+    localStorage.setItem(CHAVE_ACESSO_LOCAL, 'sim');
+    localStorage.setItem(CHAVE_ACESSO_CODIGO, digitado);
+    document.getElementById('telaAcesso').classList.add('oculta');
+  } else if (valido === false) {
+    mostrarMensagem('msgAcesso', 'Código incorreto.', 'erro');
+    document.getElementById('inputCodigoAcesso').value = '';
+    document.getElementById('inputCodigoAcesso').focus();
+  } else {
+    mostrarMensagem('msgAcesso', 'Sem internet — é preciso conexão na primeira vez pra liberar o acesso neste aparelho.', 'erro');
+  }
+});
+
 function mostrarMensagem(elId, texto, tipo) {
   const el = document.getElementById(elId);
   el.textContent = texto;

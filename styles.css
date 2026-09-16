@@ -1030,3 +1030,26 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   cursor: pointer;
   z-index: 5;
 }
+
+/* ---------- Tela de acesso (código, controlado por quem administra o app) ---------- */
+.tela-acesso {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--fundo, #0E1A26);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.tela-acesso.oculta { display: none; }
+.tela-acesso-caixa { width: 100%; max-width: 320px; text-align: center; }
+.tela-acesso-logo { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 16px; }
+.tela-acesso-caixa h1 { color: #fff; font-size: 1.3rem; margin: 0 0 6px; }
+.tela-acesso-caixa p { color: #9AA0A6; font-size: 0.85rem; margin: 0 0 20px; }
+.tela-acesso-caixa input {
+  text-align: center;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}

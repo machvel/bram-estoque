@@ -158,6 +158,12 @@ function valorSeguroParaCelula_(valor) {
   return valor;
 }
 
+// Tira tudo que não for letra/número, pra comparar só os dígitos de
+// verdade (ex: "10.508822" e "10508822" viram a mesma coisa aqui).
+function normalizarParaComparar_(valor) {
+  return String(valor || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
 function upsertLinha_(cfg, registro) {
   const { aba, cabecalho, valores } = lerAba_(cfg);
   const colChave = cabecalho.indexOf(cfg.chaveColuna);
@@ -166,14 +172,32 @@ function upsertLinha_(cfg, registro) {
   }
 
   const valorChave = registro[cfg.chaveApp];
-  const idxLinhaExistente = valores.findIndex((linha, idx) => idx > 0 && String(linha[colChave]) === String(valorChave));
+  let idxLinhaExistente = valores.findIndex((linha, idx) => idx > 0 && String(linha[colChave]) === String(valorChave));
+
+  // Proteção extra, direto no servidor — funciona pra qualquer aparelho,
+  // mesmo com uma versão antiga do app: se não achou por código EXATO,
+  // procura por código "parecido" (só formatado diferente, com/sem ponto
+  // etc) antes de criar uma linha nova. Assim a planilha nunca aceita um
+  // item duplicado por causa só de formatação, não importa de onde veio o
+  // pedido.
+  if (idxLinhaExistente <= 0 && cfg.chaveColuna === 'IDFluig') {
+    const normalizado = normalizarParaComparar_(valorChave);
+    if (normalizado) {
+      idxLinhaExistente = valores.findIndex((linha, idx) => idx > 0 && normalizarParaComparar_(linha[colChave]) === normalizado);
+    }
+  }
 
   if (idxLinhaExistente > 0) {
     Object.entries(cfg.campos).forEach(([chaveApp, nomeColuna]) => {
       if (registro[chaveApp] === undefined) return;
       const colIdx = cabecalho.indexOf(nomeColuna);
       if (colIdx === -1) return;
-      aba.getRange(idxLinhaExistente + 1, colIdx + 1).setValue(valorSeguroParaCelula_(registro[chaveApp]));
+      const celula = aba.getRange(idxLinhaExistente + 1, colIdx + 1);
+      // Força a célula do código (IDFluig) a ser sempre texto puro — não
+      // depende mais de formatar a coluna manualmente na planilha. "@" é o
+      // código do Google Sheets pra "formato de texto".
+      if (nomeColuna === cfg.chaveColuna && cfg.chaveColuna === 'IDFluig') celula.setNumberFormat('@');
+      celula.setValue(valorSeguroParaCelula_(registro[chaveApp]));
     });
   } else {
     const novaLinha = cabecalho.map((col) => {
@@ -181,6 +205,16 @@ function upsertLinha_(cfg, registro) {
       return chaveApp && registro[chaveApp] !== undefined ? valorSeguroParaCelula_(registro[chaveApp]) : '';
     });
     aba.appendRow(novaLinha);
+    if (cfg.chaveColuna === 'IDFluig') {
+      // Garante que a célula do código, na linha recém-criada, fique como
+      // texto puro — sem isso, o Google Sheets pode "entender" um valor
+      // tipo "10.508822" como número (usando o ponto como separador de
+      // milhar) e perder o ponto de verdade.
+      const linhaNova = aba.getLastRow();
+      const celula = aba.getRange(linhaNova, colChave + 1);
+      celula.setNumberFormat('@');
+      celula.setValue(String(valorChave));
+    }
   }
 }
 
@@ -196,6 +230,71 @@ function excluirLinha_(cfg, registro) {
   if (idxLinhaExistente > 0) {
     aba.deleteRow(idxLinhaExistente + 1);
   }
+}
+
+// ---------- Limpeza de duplicados do Estoque (roda direto na planilha) ----------
+// Diferente da limpeza que existe no app (que só mescla localmente em cada
+// aparelho), esta roda uma vez só, direto aqui na planilha — evita o risco
+// de dois aparelhos decidirem coisas diferentes ao mesmo tempo e acabarem
+// apagando dado de verdade. Use pelo menu "BRAM App" que aparece no topo
+// da planilha.
+function normalizarCodigoSheets_(codigo) {
+  return String(codigo || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
+function limparDuplicadosEstoqueNaPlanilha() {
+  const cfg = TABELAS.estoque;
+  const { aba, cabecalho, valores } = lerAba_(cfg);
+  const colIdFluig = cabecalho.indexOf(cfg.chaveColuna);
+  if (colIdFluig === -1) {
+    Logger.log('Não encontrei a coluna "' + cfg.chaveColuna + '" na aba Estoque.');
+    return;
+  }
+
+  // Agrupa os números de linha (1-based, contando o cabeçalho) por código normalizado.
+  const grupos = {};
+  for (let i = 1; i < valores.length; i++) {
+    const codigo = normalizarCodigoSheets_(valores[i][colIdFluig]);
+    if (!codigo) continue;
+    (grupos[codigo] = grupos[codigo] || []).push(i); // índice dentro de "valores"
+  }
+
+  const linhasParaApagar = []; // números de linha reais da planilha (1-based)
+  let gruposComDuplicata = 0;
+
+  Object.keys(grupos).forEach((codigo) => {
+    const indices = grupos[codigo];
+    if (indices.length < 2) return;
+    gruposComDuplicata++;
+
+    // Escolhe a linha "mais completa" (mais células preenchidas) como vencedora.
+    const contarPreenchidas = (idx) => valores[idx].filter((v) => v !== '' && v !== null).length;
+    indices.sort((a, b) => contarPreenchidas(b) - contarPreenchidas(a));
+    const idxVencedor = indices[0];
+
+    // Garante que o código da vencedora fique escrito por extenso (com pontos),
+    // pegando o texto mais longo entre as variantes (geralmente o mais completo).
+    let melhorTexto = String(valores[idxVencedor][colIdFluig]);
+    indices.forEach((idx) => {
+      const texto = String(valores[idx][colIdFluig]);
+      if (texto.length > melhorTexto.length) melhorTexto = texto;
+    });
+    aba.getRange(idxVencedor + 1, colIdFluig + 1).setValue(melhorTexto);
+    Logger.log('Item "' + melhorTexto + '": mantendo linha ' + (idxVencedor + 1) + ', apagando linha(s) ' + indices.slice(1).map((i) => i + 1).join(', '));
+
+    // Marca as outras linhas do grupo (perdedoras) pra apagar depois.
+    indices.slice(1).forEach((idx) => linhasParaApagar.push(idx + 1));
+  });
+
+  // Apaga de baixo pra cima, pra não bagunçar a numeração das linhas
+  // enquanto ainda estamos apagando.
+  linhasParaApagar.sort((a, b) => b - a).forEach((linha) => aba.deleteRow(linha));
+
+  Logger.log(
+    gruposComDuplicata === 0
+      ? 'RESULTADO: Nenhum item duplicado encontrado. Tudo certo!'
+      : `RESULTADO: Encontrei ${gruposComDuplicata} item(ns) duplicado(s) e apaguei ${linhasParaApagar.length} linha(s) extra(s), mantendo sempre a mais completa.`
+  );
 }
 
 function doPost(e) {
@@ -243,6 +342,44 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (acao === 'validarAcesso') {
+    const codigo = String(e.parameter.codigo || '').trim();
+    const resultado = validarCodigoAcesso_(codigo);
+    return ContentService.createTextOutput(JSON.stringify(resultado))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   return ContentService.createTextOutput(JSON.stringify({ ok: false, erro: 'ação desconhecida' }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------- Controle de acesso individual por pessoa ----------
+// Confere o código digitado contra a aba "Acessos" da planilha (colunas:
+// Nome | Codigo). Pra tirar o acesso de alguém, é só apagar a linha dela
+// nessa aba — não precisa mexer em nada do código do app.
+function validarCodigoAcesso_(codigo) {
+  if (!codigo) return { ok: false };
+  try {
+    const planilha = pegarPlanilha_();
+    const aba = planilha.getSheetByName('Acessos');
+    if (!aba) {
+      // Aba ainda não existe — sem controle de acesso configurado, libera geral.
+      return { ok: true, nome: '' };
+    }
+    const valores = aba.getDataRange().getValues();
+    const cabecalho = valores[0].map((v) => String(v).trim());
+    const colNome = cabecalho.indexOf('Nome');
+    const colCodigo = cabecalho.indexOf('Codigo');
+    if (colCodigo === -1) return { ok: true, nome: '' };
+
+    for (let i = 1; i < valores.length; i++) {
+      if (String(valores[i][colCodigo]).trim() === codigo) {
+        return { ok: true, nome: colNome !== -1 ? String(valores[i][colNome]) : '' };
+      }
+    }
+    return { ok: false };
+  } catch (erro) {
+    // Se der qualquer erro checando o acesso, não trava o app por causa disso.
+    return { ok: true, nome: '' };
+  }
 }

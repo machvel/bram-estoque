@@ -28,6 +28,16 @@ async function testarConexaoBackend() {
   }
 }
 
+// Confere o código de acesso direto com a planilha (aba "Acessos"). Retorna
+// { ok, nome } se válido, { ok:false } se não, ou lança erro se não deu pra
+// checar (ex: sem internet) — quem chama decide o que fazer nesse caso.
+async function validarCodigoAcessoServidor(codigo) {
+  const url = getBackendUrl();
+  const resp = await fetch(url + '?acao=validarAcesso&codigo=' + encodeURIComponent(codigo), { method: 'GET' });
+  if (!resp.ok) throw new Error('erro-http-' + resp.status);
+  return resp.json();
+}
+
 async function enviarItemFila(url, item) {
   const controlador = new AbortController();
   const tempoLimite = setTimeout(() => controlador.abort(), 30000); // 30s por item
@@ -129,6 +139,7 @@ window.addEventListener('online', () => {
 
 window.BramSync = {
   getBackendUrl,
+  validarCodigoAcessoServidor,
   setBackendUrl,
   testarConexaoBackend,
   sincronizarFila,
