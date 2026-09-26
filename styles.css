@@ -1060,11 +1060,12 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   align-items: center;
   gap: 4px;
   background: none;
-  border: 1px solid var(--divisor);
+  border: 1px solid #5F6368;
   border-radius: 8px;
   padding: 5px 10px;
-  font-size: 0.78rem;
-  color: var(--texto);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
   cursor: pointer;
   font-family: var(--sans);
   position: relative;
