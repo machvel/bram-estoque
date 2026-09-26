@@ -125,6 +125,7 @@ function definirModoFormMovimento(edicao) {
   document.getElementById('segmentoTipoMov').classList.toggle('oculto-flex', edicao);
   document.getElementById('campoQuantidadeMov').classList.toggle('oculto-flex', edicao);
   document.getElementById('campoQuantidadeAtual').classList.toggle('oculto-flex', !edicao);
+  document.getElementById('campoQuantidadeMinima').classList.toggle('oculto-flex', !edicao);
   document.getElementById('movQuantidade').required = !edicao;
   document.getElementById('tituloFormMovimento').textContent = edicao ? 'Editar item' : 'Registrar movimento';
   document.getElementById('sheetCaixaMovimento').classList.toggle('sheet-caixa-escura', edicao);
@@ -323,7 +324,8 @@ async function renderEstoque() {
     (!filtrosEstoqueAtivos.local || i.local === filtrosEstoqueAtivos.local)
     && (!filtrosEstoqueAtivos.prateleira || i.prateleira === filtrosEstoqueAtivos.prateleira)
     && (!filtrosEstoqueAtivos.critico || (filtrosEstoqueAtivos.critico === 'Sim' ? i.itemCritico === true : i.itemCritico !== true))
-    && (!filtrosEstoqueAtivos.marca || i.marca === filtrosEstoqueAtivos.marca);
+    && (!filtrosEstoqueAtivos.marca || i.marca === filtrosEstoqueAtivos.marca)
+    && (!filtrosEstoqueAtivos.abaixoMinimo || (i.quantidadeMinima > 0 && i.quantidade <= i.quantidadeMinima));
   const itens = (await BramDB.getAll('estoque'))
     .filter(bate)
     .filter(bateFiltrosEstoque)
@@ -336,7 +338,7 @@ async function renderEstoque() {
         <div class="card-item-nome">${i.nome}</div>
         <div class="card-item-sub"><span>${i.idFluig}</span><span>${localCompleto(i)}</span></div>
       </div>
-      <div class="card-item-qtd">${i.quantidade}</div>
+      <div class="card-item-qtd ${i.quantidadeMinima > 0 && i.quantidade <= i.quantidadeMinima ? 'card-item-qtd--baixa' : ''}">${i.quantidade}</div>
     </div>`).join('') || '<div class="lista-vazia">Nenhum item encontrado. Toque em + para lançar.</div>';
   container.querySelectorAll('.card-item--clicavel').forEach((card) => {
     card.addEventListener('click', () => abrirDetalheItem(card.dataset.idfluig));
@@ -393,6 +395,7 @@ document.getElementById('btnAbrirFiltrosEstoque').addEventListener('click', asyn
   const selectMarca = document.getElementById('filtroEstoqueMarca');
   selectMarca.innerHTML = '<option value="">Todas</option>' + marcas.map((m) => `<option>${m}</option>`).join('');
   selectMarca.value = filtrosEstoqueAtivos.marca;
+  document.getElementById('filtroEstoqueAbaixoMinimo').checked = filtrosEstoqueAtivos.abaixoMinimo;
 
   abrirSheet('modalFiltrosEstoque');
 });
@@ -405,6 +408,7 @@ document.getElementById('btnAplicarFiltrosEstoque').addEventListener('click', ()
     prateleira: document.getElementById('filtroEstoquePrateleira').value,
     critico: document.getElementById('filtroEstoqueCritico').value,
     marca: document.getElementById('filtroEstoqueMarca').value,
+    abaixoMinimo: document.getElementById('filtroEstoqueAbaixoMinimo').checked,
   };
   atualizarBadgeFiltrosEstoque();
   fecharSheet('modalFiltrosEstoque');
@@ -412,7 +416,7 @@ document.getElementById('btnAplicarFiltrosEstoque').addEventListener('click', ()
 });
 
 document.getElementById('btnLimparFiltrosEstoque').addEventListener('click', () => {
-  filtrosEstoqueAtivos = { local: '', prateleira: '', critico: '', marca: '' };
+  filtrosEstoqueAtivos = { local: '', prateleira: '', critico: '', marca: '', abaixoMinimo: false };
   atualizarBadgeFiltrosEstoque();
   fecharSheet('modalFiltrosEstoque');
   renderEstoque();
@@ -519,6 +523,7 @@ document.getElementById('btnEditarDetalhes').addEventListener('click', () => {
   definirModoFormMovimento(true);
   document.getElementById('formMovimento').dataset.idFluigOriginal = item.idFluig;
   document.getElementById('movQuantidadeAtual').value = item.quantidade;
+  document.getElementById('movQuantidadeMinima').value = item.quantidadeMinima || '';
   document.getElementById('movIdFluig').value = item.idFluig;
   document.getElementById('movNome').value = item.nome;
   document.getElementById('movPn').value = item.pn || '';
@@ -573,8 +578,9 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
   try {
     if (modoEdicaoItem) {
       const qtdEditada = document.getElementById('movQuantidadeAtual').value;
+      const qtdMinima = document.getElementById('movQuantidadeMinima').value;
       const idFluigOriginal = document.getElementById('formMovimento').dataset.idFluigOriginal;
-      await BramApp.atualizarDadosItem({ ...dadosComuns, idFluigOriginal, quantidade: qtdEditada });
+      await BramApp.atualizarDadosItem({ ...dadosComuns, idFluigOriginal, quantidade: qtdEditada, quantidadeMinima: qtdMinima });
       mostrarMensagem('msgMovimento', 'Item atualizado.', 'ok');
     } else {
       const resultado = await BramApp.registrarMovimento({
@@ -750,7 +756,7 @@ let requisicaoAbertaId = null; // qual card continua expandido entre re-renderiz
 let formItemAbertoId = null; // em qual card o formulário de +item continua visível
 let ordenacaoManual = null; // { campo: 'reqNumero' | 'data', direcao: 'asc' | 'desc' } — null = ordenação padrão por tipo
 let tiposExpandidosReq = {}; // { Pedido: true/false, Desembarque: ..., Cadastro: ... } — padrão: todos abertos
-let filtrosEstoqueAtivos = { local: '', prateleira: '', critico: '', marca: '' };
+let filtrosEstoqueAtivos = { local: '', prateleira: '', critico: '', marca: '', abaixoMinimo: false };
 const NOMES_FILTRO = { todas: 'Todas', abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
 
 async function renderRequisicoes() {

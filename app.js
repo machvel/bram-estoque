@@ -160,7 +160,7 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
 // Exclui um item de estoque por completo (não é uma saída — some da lista).
 // Atualiza só os dados cadastrais do item (local, prateleira, coluna, linha,
 // foto, P/N, marca, observação) — não mexe na quantidade nem gera movimento.
-async function atualizarDadosItem({ idFluigOriginal, idFluig, nome, local, prateleira, coluna, linha, foto, pn, marca, observacao, itemCritico, quantidade }) {
+async function atualizarDadosItem({ idFluigOriginal, idFluig, nome, local, prateleira, coluna, linha, foto, pn, marca, observacao, itemCritico, quantidade, quantidadeMinima }) {
   // "Editar item" só ALTERA um item que já existe — quem cria item novo é
   // o botão + (Lançar movimento). Busca sempre pelo código ORIGINAL (o que
   // já estava salvo), não pelo que a pessoa está digitando agora — assim
@@ -184,6 +184,7 @@ async function atualizarDadosItem({ idFluigOriginal, idFluig, nome, local, prate
   }
 
   if (quantidade !== undefined && quantidade !== '') item.quantidade = paraInteiro(quantidade);
+  if (quantidadeMinima !== undefined) item.quantidadeMinima = quantidadeMinima === '' ? 0 : paraInteiro(quantidadeMinima);
   if (nome) item.nome = nome;
   if (local) item.local = local;
   if (prateleira) item.prateleira = prateleira;

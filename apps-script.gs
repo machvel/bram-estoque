@@ -56,7 +56,7 @@ const TABELAS = {
     aba: 'Estoque',
     chaveApp: 'idFluig',
     chaveColuna: 'IDFluig',
-    campos: { idFluig: 'IDFluig', nome: 'Item', quantidade: 'Qtd', local: 'Local', prateleira: 'Prateleira', coluna: 'Coluna', linha: 'Linha', pn: 'P/N', marca: 'Marca', obs: 'OBS', itemCritico: 'Item Crítico', foto: 'Foto' },
+    campos: { idFluig: 'IDFluig', nome: 'Item', quantidade: 'Qtd', local: 'Local', prateleira: 'Prateleira', coluna: 'Coluna', linha: 'Linha', pn: 'P/N', marca: 'Marca', obs: 'OBS', itemCritico: 'Item Crítico', foto: 'Foto', quantidadeMinima: 'Qtd Minima' },
   },
   movimentos: {
     aba: 'Movimentos',
