@@ -49,10 +49,72 @@
           <input type="text" id="buscaEstoque" placeholder="Nome, código, P/N, marca ou observação" />
           <button type="button" class="botao-scan-busca" id="btnScanBusca" aria-label="Ler código de barras">📷</button>
         </div>
-        <div class="lista-cabecalho"><h2>Itens em estoque</h2></div>
+        <div class="lista-cabecalho">
+          <h2>Itens em estoque</h2>
+          <button type="button" class="botao-filtro-estoque" id="btnAbrirFiltrosEstoque">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            Filtros
+            <span class="badge-filtro oculto-flex" id="badgeFiltrosEstoque">0</span>
+          </button>
+        </div>
       </div>
       <div class="lista-cards" id="listaEstoqueCards"></div>
     </section>
+
+    <!-- Modal de filtros do Estoque -->
+    <div class="modal oculta" id="modalFiltrosEstoque">
+      <div class="modal-caixa" style="text-align:left">
+        <h3>Filtrar Estoque</h3>
+        <div class="campo">
+          <label>Local</label>
+          <select id="filtroEstoqueLocal">
+            <option value="">Todos</option>
+            <option>Paiol de Proa</option>
+            <option>Switch board</option>
+            <option>VFD Vante</option>
+            <option>Área de Carga BB</option>
+            <option>Área de Carga BE</option>
+            <option>Alar's</option>
+            <option>Maq. Leme</option>
+            <option>Escada</option>
+            <option>HVAC</option>
+            <option>Sala de Bombas</option>
+            <option>Void</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Prateleira</label>
+          <div class="seletor-cores" data-alvo="filtroEstoquePrateleira">
+            <button type="button" class="cor-bolinha" style="background:#34A853" data-cor="Green" aria-label="Green"></button>
+            <button type="button" class="cor-bolinha" style="background:#FBBC04" data-cor="Yellow" aria-label="Yellow"></button>
+            <button type="button" class="cor-bolinha" style="background:#FA7B17" data-cor="Orange" aria-label="Orange"></button>
+            <button type="button" class="cor-bolinha" style="background:#EA4335" data-cor="Red" aria-label="Red"></button>
+            <button type="button" class="cor-bolinha" style="background:#9C27B0" data-cor="Purple" aria-label="Purple"></button>
+            <button type="button" class="cor-bolinha" style="background:#4285F4" data-cor="Blue" aria-label="Blue"></button>
+            <button type="button" class="cor-bolinha cor-bolinha--clara" style="background:#FFFFFF" data-cor="White" aria-label="White"></button>
+            <button type="button" class="cor-bolinha" style="background:#202124" data-cor="Black" aria-label="Black"></button>
+          </div>
+          <input type="hidden" id="filtroEstoquePrateleira" />
+        </div>
+        <div class="campo">
+          <label>Item Crítico</label>
+          <select id="filtroEstoqueCritico">
+            <option value="">Todos</option>
+            <option value="Sim">Só críticos</option>
+            <option value="Não">Só não críticos</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Marca</label>
+          <select id="filtroEstoqueMarca">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <button type="button" class="botao botao-primario botao-bloco" id="btnAplicarFiltrosEstoque">Aplicar filtros</button>
+        <button type="button" class="botao botao-bloco" id="btnLimparFiltrosEstoque" style="margin-top:8px">Limpar filtros</button>
+        <button type="button" class="botao botao-texto" id="btnFecharFiltrosEstoque" style="width:100%; margin-top:8px">Cancelar</button>
+      </div>
+    </div>
 
     <!-- MOVIMENTOS (só acessível pelo menu ☰) -->
     <section class="tela oculta" id="tela-movimentos">

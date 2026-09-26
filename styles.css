@@ -1053,3 +1053,32 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   letter-spacing: 0.1em;
   margin-bottom: 12px;
 }
+
+/* ---------- Filtros do Estoque ---------- */
+.botao-filtro-estoque {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--divisor);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  color: var(--texto);
+  cursor: pointer;
+  font-family: var(--sans);
+  position: relative;
+}
+.badge-filtro {
+  background: var(--primaria);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}

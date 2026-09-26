@@ -319,8 +319,14 @@ async function renderEstoque() {
     || String(i.pn || '').toLowerCase().includes(filtro)
     || String(i.marca || '').toLowerCase().includes(filtro)
     || String(i.obs || '').toLowerCase().includes(filtro);
+  const bateFiltrosEstoque = (i) =>
+    (!filtrosEstoqueAtivos.local || i.local === filtrosEstoqueAtivos.local)
+    && (!filtrosEstoqueAtivos.prateleira || i.prateleira === filtrosEstoqueAtivos.prateleira)
+    && (!filtrosEstoqueAtivos.critico || (filtrosEstoqueAtivos.critico === 'Sim' ? i.itemCritico === true : i.itemCritico !== true))
+    && (!filtrosEstoqueAtivos.marca || i.marca === filtrosEstoqueAtivos.marca);
   const itens = (await BramDB.getAll('estoque'))
     .filter(bate)
+    .filter(bateFiltrosEstoque)
     .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
   const container = document.getElementById('listaEstoqueCards');
   container.innerHTML = itens.map((i) => `
@@ -361,6 +367,55 @@ document.getElementById('btnScanBusca').addEventListener('click', () => {
     campo.value = codigo;
     renderEstoque();
   });
+});
+
+function atualizarBadgeFiltrosEstoque() {
+  const quantos = Object.values(filtrosEstoqueAtivos).filter(Boolean).length;
+  const badge = document.getElementById('badgeFiltrosEstoque');
+  badge.textContent = quantos;
+  badge.classList.toggle('oculto-flex', quantos === 0);
+}
+
+document.getElementById('btnAbrirFiltrosEstoque').addEventListener('click', async () => {
+  document.getElementById('filtroEstoqueLocal').value = filtrosEstoqueAtivos.local;
+  document.getElementById('filtroEstoqueCritico').value = filtrosEstoqueAtivos.critico;
+  const grupoCores = document.querySelector('#modalFiltrosEstoque .seletor-cores');
+  limparSeletorCor(grupoCores);
+  if (filtrosEstoqueAtivos.prateleira) {
+    document.getElementById('filtroEstoquePrateleira').value = filtrosEstoqueAtivos.prateleira;
+    const bolinha = grupoCores.querySelector(`.cor-bolinha[data-cor="${filtrosEstoqueAtivos.prateleira}"]`);
+    if (bolinha) bolinha.classList.add('selecionada');
+  }
+
+  // Monta a lista de marcas com as que já existem no estoque, em ordem alfabética.
+  const todosItens = await BramDB.getAll('estoque');
+  const marcas = [...new Set(todosItens.map((i) => i.marca).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const selectMarca = document.getElementById('filtroEstoqueMarca');
+  selectMarca.innerHTML = '<option value="">Todas</option>' + marcas.map((m) => `<option>${m}</option>`).join('');
+  selectMarca.value = filtrosEstoqueAtivos.marca;
+
+  abrirSheet('modalFiltrosEstoque');
+});
+
+document.getElementById('btnFecharFiltrosEstoque').addEventListener('click', () => fecharSheet('modalFiltrosEstoque'));
+
+document.getElementById('btnAplicarFiltrosEstoque').addEventListener('click', () => {
+  filtrosEstoqueAtivos = {
+    local: document.getElementById('filtroEstoqueLocal').value,
+    prateleira: document.getElementById('filtroEstoquePrateleira').value,
+    critico: document.getElementById('filtroEstoqueCritico').value,
+    marca: document.getElementById('filtroEstoqueMarca').value,
+  };
+  atualizarBadgeFiltrosEstoque();
+  fecharSheet('modalFiltrosEstoque');
+  renderEstoque();
+});
+
+document.getElementById('btnLimparFiltrosEstoque').addEventListener('click', () => {
+  filtrosEstoqueAtivos = { local: '', prateleira: '', critico: '', marca: '' };
+  atualizarBadgeFiltrosEstoque();
+  fecharSheet('modalFiltrosEstoque');
+  renderEstoque();
 });
 
 document.getElementById('btnScanBuscaReq').addEventListener('click', () => {
@@ -695,6 +750,7 @@ let requisicaoAbertaId = null; // qual card continua expandido entre re-renderiz
 let formItemAbertoId = null; // em qual card o formulário de +item continua visível
 let ordenacaoManual = null; // { campo: 'reqNumero' | 'data', direcao: 'asc' | 'desc' } — null = ordenação padrão por tipo
 let tiposExpandidosReq = {}; // { Pedido: true/false, Desembarque: ..., Cadastro: ... } — padrão: todos abertos
+let filtrosEstoqueAtivos = { local: '', prateleira: '', critico: '', marca: '' };
 const NOMES_FILTRO = { todas: 'Todas', abertas: 'Abertas', concluidas: 'Concluídas', canceladas: 'Canceladas' };
 
 async function renderRequisicoes() {
