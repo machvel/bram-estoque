@@ -122,12 +122,22 @@ function fecharSheet(id) { document.getElementById(id).classList.add('oculta'); 
 let modoEdicaoItem = false;
 function definirModoFormMovimento(edicao) {
   modoEdicaoItem = edicao;
-  document.getElementById('segmentoTipoMov').classList.toggle('oculto-flex', edicao);
+  // No cadastro de item novo não existe "movimento": sem Entrada/Saída,
+  // o item nasce com a quantidade inicial informada (internamente entrada).
+  document.getElementById('segmentoTipoMov').classList.add('oculto-flex');
+  if (!edicao) {
+    document.getElementById('movTipoSelecionado').value = 'entrada';
+    document.querySelectorAll('.seg-tipo').forEach((b) => b.classList.remove('selecionado-entrada', 'selecionado-saida'));
+    const btnEntrada = document.querySelector('.seg-tipo[data-tipo="entrada"]');
+    if (btnEntrada) btnEntrada.classList.add('selecionado-entrada');
+  }
   document.getElementById('campoQuantidadeMov').classList.toggle('oculto-flex', edicao);
+  const rotuloQtdMov = document.querySelector('#campoQuantidadeMov label');
+  if (rotuloQtdMov) rotuloQtdMov.textContent = 'Quantidade inicial';
   document.getElementById('campoQuantidadeAtual').classList.toggle('oculto-flex', !edicao);
   document.getElementById('campoQuantidadeMinima').classList.toggle('oculto-flex', !edicao);
   document.getElementById('movQuantidade').required = !edicao;
-  document.getElementById('tituloFormMovimento').textContent = edicao ? 'Editar item' : 'Registrar movimento';
+  document.getElementById('tituloFormMovimento').textContent = edicao ? 'Editar item' : 'Cadastrar item';
   document.getElementById('sheetCaixaMovimento').classList.toggle('sheet-caixa-escura', edicao);
 }
 
