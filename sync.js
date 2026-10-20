@@ -124,7 +124,11 @@ async function puxarDoServidor() {
   // Cabeçalho da requisição e itens agora vêm prontos, cada um da sua aba —
   // não precisa mais reconstruir nada localmente, nem recalcular status
   // (o status "PEDIDO STATUS" já vem certo direto da planilha).
-  for (const registro of dados.requisicoes || []) await BramDB.put('requisicoes', registro);
+  for (const registro of dados.requisicoes || []) {
+    // "Desemb." (histórico antigo) vira "Desembarque", pra agrupar junto.
+    if (/^desemb/i.test(String(registro.tipoReq || '').trim())) registro.tipoReq = 'Desembarque';
+    await BramDB.put('requisicoes', registro);
+  }
   for (const registro of dados.itensStatus || []) await BramDB.put('itensStatus', normalizarIdFluig(registro));
 
   return dados;
