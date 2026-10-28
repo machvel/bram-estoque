@@ -620,7 +620,8 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   body { background: #000; }
 
   .app-shell {
-    max-width: 1100px;
+    max-width: none; /* usa a tela toda no computador */
+    width: 100%;
     height: 100vh;
     display: grid;
     grid-template-columns: 220px minmax(0, 1fr);
@@ -663,7 +664,7 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
     transition: grid-template-columns 0.15s ease;
   }
   .app-shell.detalhe-aberto {
-    grid-template-columns: 220px minmax(0, 1fr) 300px;
+    grid-template-columns: 220px minmax(0, 1fr) 380px;
     grid-template-areas: "topbar topbar topbar" "nav main detalhe";
   }
   .app-shell.detalhe-aberto #modalDetalheItem {
@@ -693,6 +694,11 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   .lista-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
   .lista-cards--compacta, #listaMovimentosCards, #listaRequisicoes, #listaItensAvulsos { grid-template-columns: minmax(0, 1fr); }
   .lista-cards > * { min-width: 0; }
+  @media (min-width: 1700px) {
+    .lista-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .lista-cards--compacta, #listaMovimentosCards, #listaRequisicoes, #listaItensAvulsos,
+    .app-shell.detalhe-aberto .lista-cards { grid-template-columns: minmax(0, 1fr); }
+  }
 
   .fab { right: 28px; bottom: 28px; }
 
@@ -1097,3 +1103,37 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   cursor: pointer;
 }
 .campo-checkbox input { width: auto; margin: 0; }
+
+
+/* ---------- Nova requisição: painel de itens + 2ª tela "Adicionar item" ---------- */
+#modalMovimento { z-index: 60; } /* o cadastro de item novo abre POR CIMA da 2ª tela */
+.painel-itens-req { border: 1px solid #333; border-radius: 14px; background: #0f1113; margin: 4px 0 14px; }
+.painel-itens-req-topo { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-weight: 600; font-size: 0.9rem; color: #fff; border-bottom: 1px solid #333; }
+.contador-itens-req { background: var(--primaria); color: #fff; border-radius: 10px; padding: 1px 9px; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.painel-itens-req-vazio { margin: 0; padding: 14px; font-size: 0.82rem; color: #9AA0A6; }
+.painel-itens-req-lista { list-style: none; margin: 0; padding: 10px; display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+.painel-itens-req-lista.oculto-flex { display: none; }
+.painel-itens-req-base { padding: 10px; border-top: 1px solid #333; }
+.painel-itens-req-base .botao { border-style: dashed; }
+.item-nova-req { display: flex; align-items: center; gap: 10px; background: #1c1c1c; border-radius: 10px; padding: 8px 6px 8px 8px; }
+.miniatura-req { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: #fff; }
+.miniatura-req--letra { display: flex; align-items: center; justify-content: center; background: #E8F0FE; color: var(--primaria); font-weight: 600; }
+.item-nova-req-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item-nova-req-nome { font-size: 0.84rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-nova-req-cod { font-size: 0.74rem; color: #9AA0A6; font-variant-numeric: tabular-nums; }
+.item-nova-req-qtd { color: #8AB4F8; font-weight: 600; font-size: 0.84rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.item-nova-req-x { background: none; border: 0; color: #9AA0A6; font-size: 1rem; padding: 8px 10px; cursor: pointer; border-radius: 8px; }
+.item-nova-req-x:hover { color: #F28B82; }
+
+.topo-add-item-req { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.botao-voltar-req { background: #1c1c1c; border: 1px solid #333; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; flex: 0 0 auto; }
+.cartao-add-req { display: flex; gap: 14px; background: #0f1113; border: 1px solid #333; border-radius: 14px; padding: 12px; margin-bottom: 12px; color: #fff; }
+.cartao-add-req--vazio { color: #9AA0A6; font-size: 0.86rem; align-items: center; }
+.cartao-add-req--falta { border-color: #5a2a27; color: #F28B82; }
+.foto-grande-req { flex: 0 0 auto; width: 104px; height: 104px; border-radius: 12px; background: #fff; object-fit: cover; }
+.foto-grande-req--letra { display: flex; align-items: center; justify-content: center; background: #E8F0FE; color: var(--primaria); font-size: 2rem; font-weight: 600; }
+.cartao-add-req-info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cartao-add-req-nome { font-weight: 600; font-size: 0.92rem; overflow-wrap: anywhere; }
+.cartao-add-req-meta { font-size: 0.78rem; color: #9AA0A6; }
+.cartao-add-req-meta b { color: #fff; font-weight: 500; }
+#modalAddItemReq .link-cadastrar-item-sempre { margin: 0 0 12px; }

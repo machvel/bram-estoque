@@ -143,12 +143,14 @@ function definirModoFormMovimento(edicao) {
 
 document.getElementById('fabAdicionar').addEventListener('click', () => {
   if (abaAtiva() === 'estoque') { definirModoFormMovimento(false); abrirSheet('modalMovimento'); }
-  else if (abaAtiva() === 'requisicoes') abrirSheet('modalRequisicao');
+  else if (abaAtiva() === 'requisicoes') { reiniciarItensNovaReq(); definirPainelItensReq(true); abrirSheet('modalRequisicao'); }
 });
 document.getElementById('btnCancelarMovimento').addEventListener('click', () => fecharSheet('modalMovimento'));
 document.getElementById('btnCancelarRequisicao').addEventListener('click', () => {
   fecharSheet('modalRequisicao');
   delete document.getElementById('formRequisicao').dataset.editando;
+  reiniciarItensNovaReq();
+  definirPainelItensReq(true);
   document.getElementById('tituloFormRequisicao').textContent = 'Nova requisição';
   document.getElementById('btnCriarOuSalvarRequisicao').textContent = 'Criar requisição';
   document.getElementById('formRequisicao').reset();
@@ -607,7 +609,7 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
     limparFoto();
     await renderEstoque();
     await atualizarStatusConexao();
-    setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); }, 500);
+    setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); atualizarCartaoAddItemReq(); }, 500);
   } catch (e) {
     if (e.message === 'ITEM_PARECIDO' && e.itemParecido) {
       const p = e.itemParecido;
@@ -639,7 +641,7 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
         limparFoto();
         await renderEstoque();
         await atualizarStatusConexao();
-        setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); }, 500);
+        setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); atualizarCartaoAddItemReq(); }, 500);
       } catch (e2) {
         mostrarMensagem('msgMovimento', e2.message, 'erro');
       }
@@ -683,6 +685,149 @@ document.getElementById('reqTipoReq').addEventListener('change', atualizarVisibi
 document.getElementById('reqTipo').addEventListener('change', atualizarVisibilidadeHelm);
 atualizarVisibilidadeTipo();
 
+// ---------- Itens da nova requisição: painel embaixo + 2ª tela "Adicionar item" ----------
+let itensNovaReq = []; // { idFluig, nomeItem, quantidade }
+
+function escaparHtmlReq(texto) {
+  return String(texto === undefined || texto === null ? '' : texto).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function definirPainelItensReq(visivel) {
+  document.getElementById('painelItensReq').classList.toggle('oculto-flex', !visivel);
+}
+
+function reiniciarItensNovaReq() {
+  itensNovaReq = [];
+  renderItensNovaReq();
+}
+
+async function renderItensNovaReq() {
+  const linhas = [];
+  for (let i = 0; i < itensNovaReq.length; i++) {
+    const it = itensNovaReq[i];
+    const itemEstoque = await BramDB.get('estoque', it.idFluig);
+    const miniatura = itemEstoque && itemEstoque.foto
+      ? `<img class="miniatura-req" src="${itemEstoque.foto}" alt="" />`
+      : `<div class="miniatura-req miniatura-req--letra">${escaparHtmlReq(inicial(it.nomeItem))}</div>`;
+    linhas.push(`<li class="item-nova-req">
+      ${miniatura}
+      <div class="item-nova-req-info"><span class="item-nova-req-nome">${escaparHtmlReq(it.nomeItem)}</span><span class="item-nova-req-cod">${escaparHtmlReq(it.idFluig)}</span></div>
+      <span class="item-nova-req-qtd">Qtd ${it.quantidade}</span>
+      <button type="button" class="item-nova-req-x" data-idx="${i}" aria-label="Remover item">✕</button>
+    </li>`);
+  }
+  document.getElementById('contadorItensReq').textContent = itensNovaReq.length;
+  document.getElementById('itensReqVazio').classList.toggle('oculto-flex', itensNovaReq.length > 0);
+  const lista = document.getElementById('listaItensReqNova');
+  lista.classList.toggle('oculto-flex', itensNovaReq.length === 0);
+  lista.innerHTML = linhas.join('');
+  const n = itensNovaReq.length;
+  const botao = document.getElementById('btnCriarOuSalvarRequisicao');
+  if (!document.getElementById('formRequisicao').dataset.editando) {
+    botao.textContent = n === 0 ? 'Criar requisição' : `Criar requisição com ${n} ${n === 1 ? 'item' : 'itens'}`;
+  }
+}
+
+document.getElementById('listaItensReqNova').addEventListener('click', (evt) => {
+  const botao = evt.target.closest('.item-nova-req-x');
+  if (!botao) return;
+  if (!confirm('Remover este item da requisição?')) return;
+  itensNovaReq.splice(Number(botao.dataset.idx), 1);
+  renderItensNovaReq();
+});
+
+async function atualizarCartaoAddItemReq() {
+  const campo = document.getElementById('addReqIdFluig');
+  const cartao = document.getElementById('cartaoAddItemReq');
+  const link = document.getElementById('linkCadastrarAddReq');
+  const codigo = campo.value.trim();
+  if (!codigo) {
+    cartao.className = 'cartao-add-req cartao-add-req--vazio';
+    cartao.textContent = 'Digite o ID Fluig. A descrição e a foto do item aparecem aqui.';
+    link.classList.add('oculto-flex');
+    return;
+  }
+  const item = await BramDB.get('estoque', codigo);
+  if (campo.value.trim() !== codigo) return; // o usuário já digitou outra coisa
+  if (!item) {
+    cartao.className = 'cartao-add-req cartao-add-req--vazio cartao-add-req--falta';
+    cartao.textContent = 'Item não encontrado no estoque.';
+    link.classList.remove('oculto-flex');
+    return;
+  }
+  link.classList.add('oculto-flex');
+  cartao.className = 'cartao-add-req';
+  const foto = item.foto
+    ? `<img class="foto-grande-req" src="${item.foto}" alt="Foto do item" />`
+    : `<div class="foto-grande-req foto-grande-req--letra">${escaparHtmlReq(inicial(item.nome))}</div>`;
+  cartao.innerHTML = `${foto}
+    <div class="cartao-add-req-info">
+      <span class="cartao-add-req-nome">${escaparHtmlReq(item.nome)}</span>
+      <span class="cartao-add-req-meta">ID Fluig <b>${escaparHtmlReq(item.idFluig)}</b></span>
+      <span class="cartao-add-req-meta">Marca <b>${escaparHtmlReq(item.marca || '—')}</b> · P/N <b>${escaparHtmlReq(item.pn || '—')}</b></span>
+      <span class="cartao-add-req-meta">${localCompleto(item)}</span>
+      <span class="cartao-add-req-meta">Em estoque: <b>${escaparHtmlReq(item.quantidade)}</b></span>
+    </div>`;
+}
+
+async function confirmarAddItemReq() {
+  const codigo = document.getElementById('addReqIdFluig').value.trim();
+  const qtd = Number(document.getElementById('addReqQtd').value);
+  const erro = (texto) => { mostrarMensagem('msgAddItemReq', texto, 'erro'); return false; };
+  if (!codigo) return erro('Digite ou leia o ID Fluig.');
+  const item = await BramDB.get('estoque', codigo);
+  if (!item) return erro(`Nenhum item com o código "${codigo}". Corrija o código ou toque em "Cadastrar item novo".`);
+  if (!Number.isInteger(qtd) || qtd < 1) return erro('Informe a quantidade (1 ou mais).');
+  if (itensNovaReq.some((x) => x.idFluig === item.idFluig)) return erro('Esse item já está na requisição. Remova ele na lista para adicionar de novo.');
+  itensNovaReq.push({ idFluig: item.idFluig, nomeItem: item.nome, quantidade: qtd });
+  await renderItensNovaReq();
+  return true;
+}
+
+function abrirAddItemReq() {
+  document.getElementById('addReqIdFluig').value = '';
+  document.getElementById('addReqQtd').value = '1';
+  mostrarMensagem('msgAddItemReq', '');
+  atualizarCartaoAddItemReq();
+  abrirSheet('modalAddItemReq');
+  setTimeout(() => document.getElementById('addReqIdFluig').focus(), 80);
+}
+function fecharAddItemReq() { fecharSheet('modalAddItemReq'); }
+
+document.getElementById('btnAbrirAddItemNovaReq').addEventListener('click', abrirAddItemReq);
+document.getElementById('btnVoltarAddItemReq').addEventListener('click', fecharAddItemReq);
+document.getElementById('addReqIdFluig').addEventListener('input', () => { mostrarMensagem('msgAddItemReq', ''); atualizarCartaoAddItemReq(); });
+document.getElementById('addReqIdFluig').addEventListener('keydown', (evt) => {
+  if (evt.key === 'Enter') { evt.preventDefault(); document.getElementById('addReqQtd').focus(); }
+});
+document.getElementById('addReqQtd').addEventListener('keydown', async (evt) => {
+  if (evt.key === 'Enter') { evt.preventDefault(); if (await confirmarAddItemReq()) fecharAddItemReq(); }
+});
+document.getElementById('btnScanAddReq').addEventListener('click', () => {
+  BramScanner.abrirScanner((codigo) => {
+    document.getElementById('addReqIdFluig').value = codigo;
+    atualizarCartaoAddItemReq();
+  });
+});
+document.getElementById('btnAddReqFechar').addEventListener('click', async () => {
+  if (await confirmarAddItemReq()) fecharAddItemReq();
+});
+document.getElementById('btnAddReqOutro').addEventListener('click', async () => {
+  if (await confirmarAddItemReq()) {
+    document.getElementById('addReqIdFluig').value = '';
+    document.getElementById('addReqQtd').value = '1';
+    atualizarCartaoAddItemReq();
+    mostrarMensagem('msgAddItemReq', 'Item adicionado. Pode incluir o próximo.', 'ok');
+    document.getElementById('addReqIdFluig').focus();
+  }
+});
+document.getElementById('linkCadastrarAddReq').addEventListener('click', () => {
+  definirModoFormMovimento(false);
+  document.getElementById('movIdFluig').value = document.getElementById('addReqIdFluig').value.trim();
+  document.getElementById('movNome').value = '';
+  abrirSheet('modalMovimento');
+});
+
 document.getElementById('formRequisicao').addEventListener('submit', async (evt) => {
   evt.preventDefault();
   const idEditando = evt.target.dataset.editando;
@@ -710,7 +855,23 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
     }
 
     const novaReq = await BramApp.criarRequisicao(dadosForm);
-    mostrarMensagem('msgRequisicao', 'Requisição criada.', 'ok');
+    const falhasItens = [];
+    for (const it of itensNovaReq) {
+      try {
+        await BramApp.adicionarItemRequisicao({ requisicaoId: novaReq.id, idFluig: it.idFluig, nomeItem: it.nomeItem, quantidadeSolicitada: it.quantidade });
+      } catch (erroItem) {
+        falhasItens.push(`${it.idFluig}: ${erroItem.message}`);
+      }
+    }
+    const qtdItensGravados = itensNovaReq.length - falhasItens.length;
+    mostrarMensagem(
+      'msgRequisicao',
+      falhasItens.length
+        ? `Requisição criada, mas ${falhasItens.length} item(ns) não entraram: ${falhasItens.join('; ')}`
+        : (qtdItensGravados ? `Requisição criada com ${qtdItensGravados} ${qtdItensGravados === 1 ? 'item' : 'itens'}.` : 'Requisição criada.'),
+      falhasItens.length ? 'erro' : 'ok'
+    );
+    reiniciarItensNovaReq();
     evt.target.reset();
     atualizarVisibilidadeTipo();
     await renderRequisicoes();
@@ -723,7 +884,7 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
         card.querySelector('.req-cabecalho--clicavel').click();
         card.scrollIntoView({ block: 'nearest' });
       }
-    }, 500);
+    }, falhasItens.length ? 4000 : 500);
   } catch (e) {
     mostrarMensagem('msgRequisicao', e.message, 'erro');
   }
@@ -1030,6 +1191,7 @@ function ligarEventosRequisicoes(container, todosItens) {
       atualizarVisibilidadeHelm();
       document.getElementById('reqHelm').value = req.helm || '';
       document.getElementById('reqObs').value = req.obs || '';
+      definirPainelItensReq(false);
       abrirSheet('modalRequisicao');
     });
   });

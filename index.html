@@ -392,10 +392,43 @@
           <label>Observação (opcional)</label>
           <input type="text" id="reqObs" placeholder="ex: itens para abrangência" />
         </div>
+        <div class="painel-itens-req" id="painelItensReq">
+          <div class="painel-itens-req-topo"><span>Itens da requisição</span><span class="contador-itens-req" id="contadorItensReq">0</span></div>
+          <p class="painel-itens-req-vazio" id="itensReqVazio">Nenhum item adicionado ainda.</p>
+          <ul class="painel-itens-req-lista oculto-flex" id="listaItensReqNova"></ul>
+          <div class="painel-itens-req-base"><button type="button" class="botao botao-bloco" id="btnAbrirAddItemNovaReq">+ Adicionar item</button></div>
+        </div>
         <p class="mensagem" id="msgRequisicao"></p>
         <button type="submit" class="botao botao-primario botao-bloco" id="btnCriarOuSalvarRequisicao">Criar requisição</button>
         <button type="button" class="botao botao-bloco" id="btnCancelarRequisicao" style="margin-top:8px">Cancelar</button>
       </form>
+    </div>
+  </div>
+
+  <!-- 2ª tela: adicionar item à nova requisição (ID Fluig -> descrição + foto) -->
+  <div class="modal-sheet oculta" id="modalAddItemReq">
+    <div class="sheet-caixa sheet-caixa-escura">
+      <div class="sheet-alca"></div>
+      <div class="topo-add-item-req">
+        <button type="button" class="botao-voltar-req" id="btnVoltarAddItemReq" aria-label="Voltar para a requisição">←</button>
+        <p class="sheet-titulo" style="margin:0">Adicionar item</p>
+      </div>
+      <div class="campo">
+        <label>ID Fluig</label>
+        <span class="campo-com-scan">
+          <input type="text" id="addReqIdFluig" list="listaEstoque" inputmode="decimal" autocomplete="off" placeholder="digite ou leia o código" />
+          <button type="button" class="botao-scan" id="btnScanAddReq" aria-label="Ler código de barras">📷</button>
+        </span>
+      </div>
+      <div class="cartao-add-req cartao-add-req--vazio" id="cartaoAddItemReq" aria-live="polite">Digite o ID Fluig. A descrição e a foto do item aparecem aqui.</div>
+      <button type="button" class="link-cadastrar-item-sempre oculto-flex" id="linkCadastrarAddReq">Não achou o item? Cadastrar item novo</button>
+      <div class="campo" style="max-width:160px">
+        <label>Quantidade</label>
+        <input type="number" id="addReqQtd" min="1" step="1" inputmode="numeric" value="1" />
+      </div>
+      <p class="mensagem" id="msgAddItemReq"></p>
+      <button type="button" class="botao botao-bloco" id="btnAddReqOutro">Adicionar e incluir outro</button>
+      <button type="button" class="botao botao-primario botao-bloco" id="btnAddReqFechar" style="margin-top:8px">Adicionar à requisição</button>
     </div>
   </div>
   <!-- Bottom sheet: detalhe do item + ajuste rápido de quantidade -->
