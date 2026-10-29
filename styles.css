@@ -1250,3 +1250,39 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 @media (min-width: 860px) {
   .req-corpo > .btn-abrir-add-item, .req-corpo > .btn-excluir-requisicao { width: calc(100% - 32px) !important; border-radius: 12px; }
 }
+
+/* ---------- Computador: Nova/Editar requisição e "Adicionar item" viram o cartão da direita ---------- */
+@media (min-width: 860px) {
+  #modalRequisicao:not(.oculta), #modalAddItemReq:not(.oculta) {
+    inset: auto; top: 67px; right: 12px; bottom: 12px;
+    width: calc((100vw - 220px) / 2 - 18px);
+    background: transparent; display: block; pointer-events: none; z-index: 50;
+  }
+  #modalAddItemReq:not(.oculta) { z-index: 55; }
+  #modalRequisicao:not(.oculta) .sheet-caixa, #modalAddItemReq:not(.oculta) .sheet-caixa {
+    pointer-events: auto; width: 100%; max-width: none; height: 100%; max-height: none;
+    border-radius: 20px; background: #141a24 !important; box-shadow: 0 6px 20px rgba(0,0,0,.6);
+    padding: 20px 24px 24px;
+  }
+  #modalRequisicao:not(.oculta) .sheet-alca, #modalAddItemReq:not(.oculta) .sheet-alca { display: none; }
+  body:has(#modalRequisicao:not(.oculta)) .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas {
+    margin: 12px calc((100vw - 220px) / 2 + 6px) 12px 12px !important;
+  }
+  body:has(#modalRequisicao:not(.oculta)) .fab { display: none; }
+
+  /* Itens em branco */
+  .painel-itens-req { background: #fff; border-color: #e3e6ea; }
+  .painel-itens-req-topo { color: #202124; border-bottom-color: #e3e6ea; }
+  .painel-itens-req-vazio { color: #5f6368; }
+  .painel-itens-req-base { border-top-color: #e3e6ea; }
+  .painel-itens-req-base .botao { background: #fff; color: #1a73e8; border-color: #1a73e8; }
+  .item-nova-req { background: #f1f3f4; }
+  .item-nova-req-nome { color: #202124; }
+  .item-nova-req-cod { color: #5f6368; }
+  .item-nova-req-qtd { color: #1a73e8; }
+  .item-nova-req-x { color: #5f6368; }
+  .req-corpo .btn-abrir-add-item { background: #fff !important; color: #1a73e8 !important; border: 0 !important; }
+}
+@media (min-width: 860px) {
+  #modalRequisicao .painel-itens-req-base .botao { background: #fff !important; color: #1a73e8 !important; border: 1px dashed #1a73e8 !important; }
+}
