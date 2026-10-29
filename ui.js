@@ -453,7 +453,34 @@ async function abrirDetalheItem(idFluig) {
   renderDetalheItem();
   document.getElementById('modalDetalheItem').classList.remove('oculta');
   document.querySelector('.app-shell').classList.add('detalhe-aberto');
+  marcarCardEstoqueSelecionado(idFluig);
 }
+
+function marcarCardEstoqueSelecionado(idFluig) {
+  document.querySelectorAll('#listaEstoqueCards .card-item').forEach((c) => {
+    c.classList.toggle('card-item--sel', c.dataset.idfluig === String(idFluig));
+  });
+}
+
+// Teclado (computador): com o detalhe de um item aberto, seta ↓ vai para o item
+// de baixo da lista e seta ↑ para o de cima.
+document.addEventListener('keydown', (evt) => {
+  if (!['ArrowDown', 'ArrowUp'].includes(evt.key)) return;
+  if (evt.altKey || evt.ctrlKey || evt.metaKey || evt.shiftKey) return;
+  const alvo = evt.target;
+  if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName))) return;
+  if (document.querySelector('.modal-sheet:not(.oculta):not(#modalDetalheItem), .modal:not(.oculta)')) return;
+  const detalhe = document.getElementById('modalDetalheItem');
+  const tela = document.getElementById('tela-estoque');
+  if (!detalhe || detalhe.classList.contains('oculta') || !tela || tela.classList.contains('oculta') || !itemDetalheAtual) return;
+  const cards = Array.from(document.querySelectorAll('#listaEstoqueCards .card-item--clicavel'));
+  const i = cards.findIndex((c) => c.dataset.idfluig === String(itemDetalheAtual.idFluig));
+  const proximo = cards[evt.key === 'ArrowDown' ? i + 1 : i - 1];
+  evt.preventDefault();
+  if (!proximo) return;
+  abrirDetalheItem(proximo.dataset.idfluig);
+  proximo.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
 
 function renderDetalheItem() {
   const item = itemDetalheAtual;

@@ -1390,3 +1390,8 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   body:has(#modalRequisicao:not(.oculta)) .lista-cards,
   body:has(#modalAddItemReq:not(.oculta)) .lista-cards { grid-template-columns: minmax(0, 1fr) !important; }
 }
+
+/* Item selecionado na lista do Estoque (computador, detalhe aberto) */
+@media (min-width: 860px) {
+  .app-shell.detalhe-aberto #listaEstoqueCards .card-item--sel { background: #E8F0FE; box-shadow: 0 0 0 2px #1a73e8; }
+}
