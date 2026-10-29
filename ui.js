@@ -1109,6 +1109,27 @@ function renderCardRequisicao(r, todosItens) {
     </div>`;
 }
 
+// Teclado (computador): com uma requisição aberta, seta ↓/→ vai para a de baixo
+// e seta ↑/← para a de cima, igual ao deslizar do dedo no celular.
+document.addEventListener('keydown', (evt) => {
+  if (!['ArrowDown', 'ArrowUp'].includes(evt.key)) return;
+  if (evt.altKey || evt.ctrlKey || evt.metaKey || evt.shiftKey) return;
+  const alvo = evt.target;
+  if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName))) return;
+  if (document.querySelector('.modal-sheet:not(.oculta):not(#modalDetalheItem), .modal:not(.oculta)')) return;
+  const tela = document.getElementById('tela-requisicoes');
+  if (!tela || tela.classList.contains('oculta')) return;
+  const aberto = document.querySelector('#listaRequisicoes .req-corpo:not(.oculto-flex)');
+  if (!aberto) return;
+  const cards = Array.from(document.querySelectorAll('#listaRequisicoes .card-requisicao')).filter((c) => c.offsetParent !== null);
+  const i = cards.indexOf(aberto.closest('.card-requisicao'));
+  const proximo = cards[evt.key === 'ArrowDown' ? i + 1 : i - 1];
+  evt.preventDefault();
+  if (!proximo) return;
+  proximo.querySelector('.req-cabecalho--clicavel').click();
+  proximo.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+
 function ligarEventosRequisicoes(container, todosItens) {
   // Deslizar o dedo pro lado, dentro do detalhe aberto, pula pra
   // requisição anterior/seguinte da lista, sem precisar fechar e abrir de novo.
