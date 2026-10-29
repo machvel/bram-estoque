@@ -1137,3 +1137,116 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 .cartao-add-req-meta { font-size: 0.78rem; color: #9AA0A6; }
 .cartao-add-req-meta b { color: #fff; font-weight: 500; }
 #modalAddItemReq .link-cadastrar-item-sempre { margin: 0 0 12px; }
+
+/* ---- PROPOSTA v3: dois cartões de cantos arredondados, meio a meio (computador) ---- */
+@media (min-width: 860px) {
+  /* lista: cartão da esquerda */
+  .app-shell:has(.req-corpo:not(.oculto-flex)) main.telas {
+    margin: 12px calc((100vw - 220px) / 2 + 6px) 12px 12px;
+    height: calc(100% - 24px);
+    border: 2px solid #2d3b55;
+    border-radius: 18px;
+    background: #000;
+  }
+  /* requisição aberta: cartão da direita */
+  .req-corpo:not(.oculto-flex) {
+    top: 67px;
+    right: 12px;
+    bottom: 12px;
+    width: calc((100vw - 220px) / 2 - 18px);
+    max-width: none;
+    padding: 0 20px 24px;
+    background: #10161f;
+    border: 2px solid #3b78e7;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  }
+  .req-corpo:not(.oculto-flex) .btn-fechar-req-corpo {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    width: calc(100% + 40px);
+    margin: 0 -20px 16px;
+    padding: 14px 20px;
+    border: 0;
+    border-bottom: 1px solid #2d3b55;
+    border-radius: 16px 16px 0 0;
+    background: #0b1018;
+    text-align: left;
+    font-weight: 600;
+  }
+  .req-corpo:not(.oculto-flex) .btn-fechar-req-corpo::before { content: "✕  "; color: #9AA0A6; }
+
+  .app-shell:has(.req-corpo:not(.oculto-flex)) #listaRequisicoes .req-cabecalho--clicavel .chip { display: none; }
+  .app-shell .card-requisicao:has(.req-corpo:not(.oculto-flex)) {
+    background: #E8F0FE;
+    border-left-color: var(--primaria);
+    box-shadow: 0 0 0 2px var(--primaria);
+  }
+}
+@media (min-width: 860px) {
+  /* com a lista pela metade, margens internas menores pra linha da tabela caber no cartão */
+  .app-shell:has(.req-corpo:not(.oculto-flex)) main.telas { padding-left: 14px; padding-right: 14px; }
+  .app-shell:has(.req-corpo:not(.oculto-flex)) .filtro-status-req { flex-basis: 120px; }
+}
+
+/* ---- PROPOSTA v4: a lista de requisições fica sempre dentro de um cartão arredondado ---- */
+@media (min-width: 860px) {
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas {
+    margin: 12px;
+    height: calc(100% - 24px);
+    border: 2px solid #2d3b55;
+    border-radius: 18px;
+    background: #000;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  /* com uma requisição aberta, o cartão da lista encolhe pra metade da esquerda */
+  .app-shell:has(#tela-requisicoes:not(.oculta)):has(.req-corpo:not(.oculto-flex)) main.telas {
+    margin: 12px calc((100vw - 220px) / 2 + 6px) 12px 12px;
+  }
+}
+
+/* v7 — dois cartões grandes separados: lista e descrição; linhas brancas */
+@media (min-width: 860px) {
+  .app-shell:has(#tela-requisicoes:not(.oculta)) { background:#05080d; }
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas {
+    background:#141a24; border:0; border-radius:20px; box-shadow:0 6px 20px rgba(0,0,0,.6);
+  }
+  .req-corpo:not(.oculto-flex) {
+    background:#141a24; border:0; border-radius:20px; box-shadow:0 6px 20px rgba(0,0,0,.6);
+    overflow:hidden;
+  }
+  .req-corpo .btn-fechar-req-corpo { background:#1d2531; }
+  /* linhas brancas no detalhe */
+}
+@media (min-width: 860px) {
+  .req-corpo.sheet-caixa-escura, .req-corpo .sheet-caixa-escura { background:#141a24; }
+  #tela-requisicoes .lista-cabecalho, #tela-requisicoes .barra-busca-fixa, #tela-requisicoes [class*="sticky"], #tela-requisicoes .topo-fixo { background:#141a24 !important; }
+  .req-corpo:not(.oculto-flex) .btn-fechar-req-corpo { border-radius:0; }
+  #listaRequisicoes .card-requisicao { border-radius:12px; margin-bottom:8px; }
+}
+@media (min-width: 860px) {
+  .req-corpo.sheet-caixa-escura { background:#141a24 !important; }
+  .app-shell:has(#tela-requisicoes:not(.oculta)):has(.req-corpo:not(.oculto-flex)) main.telas,
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas { background:#141a24 !important; border:0 !important; }
+  .req-corpo:not(.oculto-flex) { padding-left:0; padding-right:0; }
+  .req-corpo > *:not(.btn-fechar-req-corpo) { margin-left:16px; margin-right:16px; }
+}
+@media (min-width: 860px) {
+  .requisicoes-topo-fixo { background:#141a24 !important; }
+}
+@media (min-width: 860px) {
+  .req-corpo .tabela-itens-req { margin-left:0; margin-right:0; }
+}
+@media (min-width: 860px) { .req-corpo .tabela-itens-req { margin-left:16px !important; margin-right:16px !important; } }
+@media (min-width: 860px) {
+  .req-corpo .tabela-itens-req { background:#fff; border-radius:12px; overflow:hidden; margin-top:6px; }
+  .req-corpo .tabela-itens-req-cabecalho { background:#fff; color:#5f6368 !important; padding:10px 14px 4px; border:0; }
+  .req-corpo .tabela-itens-req-linha[data-item] { background:#fff; color:#202124; border-bottom:0; padding:8px 14px 2px; }
+  .req-corpo .tabela-itens-req-acoes { background:#fff; border-bottom:1px solid #e3e6ea !important; padding:0 10px 8px; }
+  .req-corpo .tabela-itens-req-acoes:last-child { border-bottom:0 !important; }
+}
+@media (min-width: 860px) {
+  .req-corpo > .btn-abrir-add-item, .req-corpo > .btn-excluir-requisicao { width: calc(100% - 32px) !important; border-radius: 12px; }
+}
