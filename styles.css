@@ -1395,3 +1395,16 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 @media (min-width: 860px) {
   .app-shell.detalhe-aberto #listaEstoqueCards .card-item--sel { background: #E8F0FE; box-shadow: 0 0 0 2px #1a73e8; }
 }
+
+/* Descrição da requisição: o cartão rola e a faixa FECHAR fica fixa no topo */
+@media (min-width: 860px) {
+  .req-corpo:not(.oculto-flex) { overflow-y: auto !important; overflow-x: hidden; padding-bottom: 24px; }
+  .req-corpo:not(.oculto-flex) > .btn-fechar-req-corpo { position: sticky !important; top: 0; z-index: 6; }
+}
+@media (min-width: 860px) {
+  /* Estoque: faixa FECHAR também fica fixa enquanto o cartão rola */
+  .app-shell.detalhe-aberto #btnVoltarDetalheItem { position: sticky !important; top: 0; left: auto; right: auto; width: calc(100% + 48px); margin: -56px -24px 12px; z-index: 8; }
+}
+@media (min-width: 860px) {
+  .app-shell.detalhe-aberto #modalDetalheItem .sheet-caixa { overflow: visible !important; }
+}
