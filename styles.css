@@ -1408,3 +1408,19 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 @media (min-width: 860px) {
   .app-shell.detalhe-aberto #modalDetalheItem .sheet-caixa { overflow: visible !important; }
 }
+
+/* Busca fica fixa logo abaixo da faixa azul; só a lista rola */
+@media (min-width: 860px) {
+  .app-shell:has(#tela-estoque:not(.oculta)) main.telas::before,
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas::before { margin-bottom: 0 !important; height: 44px; line-height: 20px; }
+  #tela-estoque .requisicoes-topo-fixo, #tela-requisicoes .requisicoes-topo-fixo {
+    position: sticky; top: 44px; z-index: 4; padding-top: 14px; background: #141a24 !important;
+  }
+}
+@media (min-width: 860px) {
+  .app-shell:has(#tela-estoque:not(.oculta)) main.telas::before,
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas::before { box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding-top: 0; padding-bottom: 0; }
+}
+@media (min-width: 860px) {
+  #tela-requisicoes .filtro-status-req { top: 58px; z-index: 4; }
+}
