@@ -1286,3 +1286,74 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 @media (min-width: 860px) {
   #modalRequisicao .painel-itens-req-base .botao { background: #fff !important; color: #1a73e8 !important; border: 1px dashed #1a73e8 !important; }
 }
+@media (min-width: 860px) {
+  .req-corpo .btn-fechar-req-corpo, .req-corpo:not(.oculto-flex) .btn-fechar-req-corpo { background: #1a73e8 !important; color: #fff !important; border: 0 !important; }
+  .req-corpo .btn-fechar-req-corpo:hover { background: #1b66c9 !important; }
+}
+@media (min-width: 860px) {
+  .req-corpo .btn-fechar-req-corpo { padding-left: 20px !important; }
+  .req-corpo .btn-fechar-req-corpo::before { color: #fff !important; }
+}
+
+/* Faixa azul "Requisições" no topo do cartão da lista (computador) */
+@media (min-width: 860px) {
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas { padding-top: 0 !important; }
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas::before {
+    content: "Requisições"; display: block; position: sticky; top: 0; z-index: 5;
+    margin: 0 -14px 12px; padding: 12px 20px; background: #1a73e8; color: #fff;
+    font-weight: 600; font-size: .95rem;
+  }
+}
+@media (min-width: 860px) {
+  .req-corpo > .btn-fechar-req-corpo { padding: 12px 20px !important; text-align: left; }
+}
+@media (min-width: 860px) {
+  .req-corpo:not(.oculto-flex) > .btn-fechar-req-corpo { width: 100% !important; margin: 0 0 12px !important; border-radius: 0 !important; }
+}
+@media (min-width: 860px) {
+  .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas::before {
+    text-align: center; text-transform: uppercase; letter-spacing: .08em;
+  }
+}
+@media (min-width: 860px) {
+  .req-corpo:not(.oculto-flex) > .btn-fechar-req-corpo {
+    text-align: center !important; text-transform: uppercase; letter-spacing: .08em;
+    padding: 12px 20px !important; font-size: .95rem;
+  }
+}
+
+/* ---------- Computador: Estoque em dois cartões (lista | descrição), faixas azuis ---------- */
+@media (min-width: 860px) {
+  .app-shell:has(#tela-estoque:not(.oculta)) { background: #05080d; }
+  .app-shell:has(#tela-estoque:not(.oculta)) main.telas {
+    margin: 12px; height: calc(100% - 24px); padding: 0 14px 24px !important;
+    background: #141a24 !important; border: 0; border-radius: 20px; box-shadow: 0 6px 20px rgba(0,0,0,.6);
+  }
+  .app-shell:has(#tela-estoque:not(.oculta)) main.telas::before {
+    content: "ESTOQUE"; display: block; position: sticky; top: 0; z-index: 5;
+    margin: 0 -14px 14px; padding: 12px 20px; background: #1a73e8; color: #fff;
+    font-weight: 600; font-size: .95rem; text-align: center; letter-spacing: .08em;
+  }
+  /* meio a meio quando o detalhe do item está aberto */
+  .app-shell.detalhe-aberto:has(#tela-estoque:not(.oculta)) {
+    grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .app-shell.detalhe-aberto:has(#tela-estoque:not(.oculta)) main.telas { margin: 12px 6px 12px 12px; }
+  .app-shell.detalhe-aberto #modalDetalheItem {
+    margin: 12px 12px 12px 6px; height: calc(100% - 24px);
+    border: 0; border-radius: 20px; overflow-y: auto; box-shadow: 0 6px 20px rgba(0,0,0,.6);
+  }
+  .app-shell.detalhe-aberto #modalDetalheItem,
+  .app-shell.detalhe-aberto #modalDetalheItem .sheet-caixa,
+  .app-shell.detalhe-aberto #modalDetalheItem .sheet-caixa-escura { background: #141a24 !important; }
+  .app-shell.detalhe-aberto #modalDetalheItem .sheet-caixa { border-radius: 20px; padding-top: 56px; position: relative; }
+  /* a seta vira a faixa azul FECHAR */
+  .app-shell.detalhe-aberto #btnVoltarDetalheItem {
+    position: absolute; top: 0; left: 0; right: 0; width: 100%; height: 44px; border-radius: 20px 20px 0 0;
+    background: #1a73e8; color: #fff; font-size: 0; display: block; text-align: center;
+  }
+  .app-shell.detalhe-aberto #btnVoltarDetalheItem::after {
+    content: "✕  FECHAR"; font-size: .95rem; font-weight: 600; letter-spacing: .08em; color: #fff;
+  }
+  .app-shell.detalhe-aberto #btnVoltarDetalheItem:hover { background: #1b66c9; }
+}
