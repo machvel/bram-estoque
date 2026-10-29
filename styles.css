@@ -1357,3 +1357,22 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   }
   .app-shell.detalhe-aberto #btnVoltarDetalheItem:hover { background: #1b66c9; }
 }
+
+/* Faixa azul nos títulos do cartão lateral (Nova requisição / Adicionar item) */
+@media (min-width: 860px) {
+  #modalRequisicao:not(.oculta) .sheet-titulo {
+    margin: -20px -24px 18px; padding: 12px 20px; background: #1a73e8; color: #fff;
+    border-radius: 20px 20px 0 0; text-align: center; text-transform: uppercase;
+    letter-spacing: .08em; font-weight: 600; font-size: .95rem;
+  }
+  #modalAddItemReq:not(.oculta) .topo-add-item-req {
+    position: relative; margin: -20px -24px 18px; padding: 0 20px; height: 44px; background: #1a73e8;
+    border-radius: 20px 20px 0 0; justify-content: center;
+  }
+  #modalAddItemReq:not(.oculta) .topo-add-item-req .sheet-titulo {
+    margin: 0; color: #fff; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; font-size: .95rem;
+  }
+  #modalAddItemReq:not(.oculta) .botao-voltar-req {
+    position: absolute; left: 10px; top: 2px; background: rgba(255,255,255,.2); border: 0; color: #fff;
+  }
+}
