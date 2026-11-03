@@ -714,6 +714,7 @@ atualizarVisibilidadeTipo();
 
 // ---------- Itens da nova requisição: painel embaixo + 2ª tela "Adicionar item" ----------
 let itensNovaReq = []; // { idFluig, nomeItem, quantidade }
+let addItemReqAlvoId = null; // null = nova requisição (ainda não criada); senão, id da requisição já criada
 
 function escaparHtmlReq(texto) {
   return String(texto === undefined || texto === null ? '' : texto).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -805,13 +806,28 @@ async function confirmarAddItemReq() {
   const item = await BramDB.get('estoque', codigo);
   if (!item) return erro(`Nenhum item com o código "${codigo}". Corrija o código ou toque em "Cadastrar item novo".`);
   if (!Number.isInteger(qtd) || qtd < 1) return erro('Informe a quantidade (1 ou mais).');
+  if (addItemReqAlvoId) {
+    // Requisição já criada: grava direto nela
+    const jaTem = (await BramDB.getAll('itensStatus')).some((x) => x.requisicaoId === addItemReqAlvoId && x.idFluig === item.idFluig && x.status !== 'Cancelado');
+    if (jaTem) return erro('Esse item já está nesta requisição.');
+    try {
+      await BramApp.adicionarItemRequisicao({ requisicaoId: addItemReqAlvoId, idFluig: item.idFluig, nomeItem: item.nome, quantidadeSolicitada: qtd });
+    } catch (e) {
+      return erro(e.message);
+    }
+    requisicaoAbertaId = addItemReqAlvoId;
+    await renderRequisicoes();
+    await atualizarStatusConexao();
+    return true;
+  }
   if (itensNovaReq.some((x) => x.idFluig === item.idFluig)) return erro('Esse item já está na requisição. Remova ele na lista para adicionar de novo.');
   itensNovaReq.push({ idFluig: item.idFluig, nomeItem: item.nome, quantidade: qtd });
   await renderItensNovaReq();
   return true;
 }
 
-function abrirAddItemReq() {
+function abrirAddItemReq(alvoId) {
+  addItemReqAlvoId = typeof alvoId === 'string' ? alvoId : null;
   document.getElementById('addReqIdFluig').value = '';
   document.getElementById('addReqQtd').value = '1';
   mostrarMensagem('msgAddItemReq', '');
@@ -821,7 +837,7 @@ function abrirAddItemReq() {
 }
 function fecharAddItemReq() { fecharSheet('modalAddItemReq'); }
 
-document.getElementById('btnAbrirAddItemNovaReq').addEventListener('click', abrirAddItemReq);
+document.getElementById('btnAbrirAddItemNovaReq').addEventListener('click', () => abrirAddItemReq());
 document.getElementById('btnVoltarAddItemReq').addEventListener('click', fecharAddItemReq);
 document.getElementById('addReqIdFluig').addEventListener('input', () => { mostrarMensagem('msgAddItemReq', ''); atualizarCartaoAddItemReq(); });
 document.getElementById('addReqIdFluig').addEventListener('keydown', (evt) => {
@@ -1292,17 +1308,8 @@ function ligarEventosRequisicoes(container, todosItens) {
 
   container.querySelectorAll('.btn-abrir-add-item').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const card = btn.closest('.card-requisicao');
-      const form = btn.nextElementSibling;
-      form.classList.toggle('oculto-flex');
-      const abriu = !form.classList.contains('oculto-flex');
-      formItemAbertoId = abriu ? card.dataset.req : null;
-      if (abriu && !form.dataset.editando) {
-        form.querySelector('.in-idfluig').value = '';
-        form.querySelector('.in-nome').value = '';
-        form.querySelector('.in-qtd').value = '';
-        form.querySelector('.btn-add-item').textContent = 'Salvar';
-      }
+      // Mesma 2ª tela "Adicionar item" da criação: ID Fluig → descrição + foto → quantidade
+      abrirAddItemReq(btn.closest('.card-requisicao').dataset.req);
     });
   });
 
