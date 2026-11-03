@@ -278,6 +278,15 @@ async function excluirRequisicao(requisicaoId) {
   await BramDB.enfileirar('requisicoes', 'delete', { id: requisicaoId });
 }
 
+// Remove só este item da requisição (não mexe no estoque).
+async function excluirItemRequisicao(itemId) {
+  const item = await BramDB.get('itensStatus', itemId);
+  if (!item) throw new Error('Item da requisição não encontrado.');
+  await BramDB.del('itensStatus', itemId);
+  await BramDB.enfileirar('itensStatus', 'delete', { id: itemId });
+  await atualizarStatusRequisicao(item.requisicaoId);
+}
+
 async function adicionarItemRequisicao({ requisicaoId, idFluig, nomeItem, quantidadeSolicitada }) {
   const requisicao = await BramDB.get('requisicoes', requisicaoId);
   if (!requisicao) throw new Error('Requisição não encontrada.');
@@ -430,6 +439,7 @@ window.BramApp = {
   criarRequisicao,
   editarRequisicao,
   excluirRequisicao,
+  excluirItemRequisicao,
   definirStatusRequisicao,
   adicionarItemRequisicao,
   editarItemRequisicao,
