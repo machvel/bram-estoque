@@ -1424,3 +1424,11 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 @media (min-width: 860px) {
   #tela-requisicoes .filtro-status-req { top: 58px; z-index: 4; }
 }
+
+/* Botão pequeno ✕ (excluir item) ao lado do Salvar, só quando está editando um item */
+.form-item-inline:not([data-editando]) .btn-excluir-item-form { display: none; }
+.form-item-inline[data-editando] { grid-template-columns: 1fr 1fr auto; }
+.btn-excluir-item-form { width: 44px; padding: 0; font-size: 1.1rem; line-height: 1; color: #d93025; border: 1px solid #d93025; background: transparent; }
+@media (min-width: 860px) {
+  .req-corpo .btn-excluir-item-form { background: #fff !important; color: #d93025 !important; border: 1px solid #d93025 !important; }
+}

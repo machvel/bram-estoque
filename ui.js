@@ -1145,6 +1145,7 @@ function renderCardRequisicao(r, todosItens) {
           <button type="button" class="link-cadastrar-item oculto-flex campo-linha-inteira">Item não encontrado no estoque — toque aqui para cadastrar</button>
           <input type="number" class="in-qtd" placeholder="Qtd." min="1" step="1" inputmode="numeric" />
           <button class="botao botao-primario btn-add-item">Salvar</button>
+          <button type="button" class="botao botao-perigo-texto btn-excluir-item-form" aria-label="Excluir item da requisição" title="Excluir item da requisição">✕</button>
           <button type="button" class="link-cadastrar-item-sempre campo-linha-inteira">Não achou o item? Cadastrar item novo</button>
         </div>
         <button type="button" class="botao botao-perigo-texto btn-excluir-requisicao" style="width:100%; margin-top:8px">Excluir requisição</button>
@@ -1378,6 +1379,23 @@ function ligarEventosRequisicoes(container, todosItens) {
       await renderRequisicoes();
       await renderEstoque();
       await atualizarStatusConexao();
+    });
+  });
+  container.querySelectorAll('.btn-excluir-item-form').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const form = btn.closest('.form-item-inline');
+      const itemId = form.dataset.editando;
+      if (!itemId) return;
+      if (!confirm('Excluir este item da requisição? Essa ação não pode ser desfeita e não altera o estoque.')) return;
+      try {
+        await BramApp.excluirItemRequisicao(itemId);
+        delete form.dataset.editando;
+        formItemAbertoId = null;
+        await renderRequisicoes();
+        await atualizarStatusConexao();
+      } catch (e) {
+        alert(e.message);
+      }
     });
   });
   container.querySelectorAll('.btn-excluir-requisicao').forEach((btn) => {
