@@ -92,14 +92,19 @@ async function obterOuCriarEstoque(idFluig, nome, unidade) {
 
 async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, local, prateleira, coluna, linha, responsavel, observacao, foto, pn, marca, itemCritico, confirmadoComoNovo }) {
   quantidade = paraInteiro(quantidade);
-  if (!idFluig || !quantidade || quantidade <= 0) {
-    throw new Error('Informe o item e uma quantidade maior que zero.');
-  }
+  if (!idFluig) throw new Error('Informe o código do item.');
 
   // Lançar entrada/saída pelo botão + É a forma certa de cadastrar um item
   // novo (com uma quantidade inicial). Editar item é diferente — só altera
   // um item que já existe, nunca cria.
   const jaExistia = !!(await BramDB.get('estoque', String(idFluig)));
+
+  // Cadastro de material novo pode ter quantidade 0 (ex.: item pedido que ainda não chegou).
+  // Nesse caso o item é criado sem gerar movimento de entrada.
+  const cadastroSemQuantidade = !jaExistia && tipo === 'entrada' && quantidade === 0;
+  if (!cadastroSemQuantidade && (!quantidade || quantidade <= 0)) {
+    throw new Error('Informe o item e uma quantidade maior que zero.');
+  }
 
   if (!jaExistia && !confirmadoComoNovo) {
     // Antes de criar um item novo, procura se já existe algo com o código
@@ -138,6 +143,8 @@ async function registrarMovimento({ idFluig, nome, tipo, quantidade, unidade, lo
 
   await BramDB.put('estoque', item);
   await BramDB.enfileirar('estoque', 'upsert', item);
+
+  if (cadastroSemQuantidade) return { item, mov: null, jaExistia };
 
   const mov = {
     id: uid(),

@@ -1463,11 +1463,12 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 
 @media (min-width: 860px) {
   /* Ordem: Requisições | Adicionar item | Cadastrar material */
-  body.cad-lateral #modalAddItemReq:not(.oculta) { right: 424px !important; width: 400px !important; }
-  body.cad-lateral:has(#modalAddItemReq:not(.oculta)):has(#modalRequisicao:not(.oculta)) .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas { margin: 12px 836px 12px 12px !important; }
+  /* Com o cadastro aberto, a lista de requisições some: ficam só os dois cartões, cada um em metade da tela. */
+  body.cad-lateral #modalAddItemReq:not(.oculta) { right: calc((100vw - 220px) / 2 - 18px + 24px) !important; width: calc((100vw - 220px) / 2 - 18px) !important; }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) .app-shell main.telas { visibility: hidden !important; }
   body.cad-lateral #modalRequisicao:not(.oculta) { visibility: hidden; }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) {
-    inset: auto; top: 67px; right: 12px; bottom: 12px; width: 400px;
+    inset: auto; top: 67px; right: 12px; bottom: 12px; width: calc((100vw - 220px) / 2 - 18px);
     background: transparent; display: block; pointer-events: none; z-index: 60;
   }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) .sheet-caixa {

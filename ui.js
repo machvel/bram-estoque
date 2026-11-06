@@ -135,10 +135,12 @@ function definirModoFormMovimento(edicao) {
   }
   document.getElementById('campoQuantidadeMov').classList.toggle('oculto-flex', edicao);
   const rotuloQtdMov = document.querySelector('#campoQuantidadeMov label');
-  if (rotuloQtdMov) rotuloQtdMov.textContent = 'Quantidade inicial';
+  if (rotuloQtdMov) rotuloQtdMov.textContent = 'Quantidade inicial (pode ser 0)';
   document.getElementById('campoQuantidadeAtual').classList.toggle('oculto-flex', !edicao);
   document.getElementById('campoQuantidadeMinima').classList.toggle('oculto-flex', !edicao);
-  document.getElementById('movQuantidade').required = !edicao;
+  // No cadastro, a quantidade inicial pode ser 0 (material que ainda não chegou).
+  document.getElementById('movQuantidade').required = false;
+  document.getElementById('movQuantidade').min = '0';
   document.getElementById('tituloFormMovimento').textContent = edicao ? 'Editar item' : 'Cadastrar item';
   document.getElementById('sheetCaixaMovimento').classList.toggle('sheet-caixa-escura', edicao);
 }
