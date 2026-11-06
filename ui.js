@@ -1640,6 +1640,8 @@ async function atualizarSelectSolicitante(valorAtual) {
   if (atual && !nomes.includes(atual)) nomes.push(atual); // mantém o nome de requisições antigas ao editar
   sel.innerHTML = '<option value="">Selecione...</option>' + nomes.map((n) => `<option>${escHtml(n)}</option>`).join('');
   sel.value = atual || '';
+  // Sem nenhum nome cadastrado ainda, não trava a criação da requisição.
+  sel.required = nomes.length > 0;
 }
 
 async function abrirAdmin() {
