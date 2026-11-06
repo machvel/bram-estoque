@@ -93,8 +93,14 @@ async function enviarItemFila(url, item) {
   } finally {
     clearTimeout(tempoLimite);
   }
-  if (!resp.ok) throw new Error('Falha ao sincronizar item ' + item.id);
-  return resp.json();
+  if (!resp.ok) throw new Error('Falha ao sincronizar item ' + item.id + ' (código ' + resp.status + ')');
+  let corpo = null;
+  try { corpo = await resp.json(); } catch (e) {
+    throw new Error('O servidor não respondeu como esperado. Provavelmente o Apps Script não foi reimplantado como "Nova versão" ou o endereço está errado.');
+  }
+  // O Apps Script responde HTTP 200 mesmo com erro; precisa olhar o conteúdo.
+  if (corpo && corpo.ok === false) throw new Error(String(corpo.erro || 'Erro no servidor').replace(/^Error:\s*/, ''));
+  return corpo;
 }
 
 // Envia tudo que está pendente na fila local, um item por vez.
@@ -115,7 +121,7 @@ async function sincronizarFila(onProgresso) {
       if (onProgresso) onProgresso(enviados, fila.length);
     } catch (e) {
       // Sem rede ou erro no servidor: interrompe e tenta de novo depois.
-      return { enviados, restantes: await BramDB.tamanhoFila(), erro: 'interrompido' };
+      return { enviados, restantes: await BramDB.tamanhoFila(), erro: 'interrompido', detalhe: String((e && e.message) || e), tabela: item.tabela };
     }
   }
   return { enviados, restantes: 0, erro: null };

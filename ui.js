@@ -1548,7 +1548,7 @@ document.getElementById('btnSincronizarAgora').addEventListener('click', async (
     mostrarMensagem('msgSync', `Enviando… ${feitos}/${total}`);
   });
   if (r.erro === 'sem-url') mostrarMensagem('msgSync', 'Configure o endereço do backend primeiro.', 'erro');
-  else if (r.erro === 'interrompido') mostrarMensagem('msgSync', `Enviado ${r.enviados}, mas a conexão caiu. Restam ${r.restantes}.`, 'erro');
+  else if (r.erro === 'interrompido') mostrarMensagem('msgSync', `Enviado ${r.enviados}. Restam ${r.restantes}. Motivo: ${r.detalhe || 'sem conexão'} (aba: ${r.tabela || '?'})`, 'erro');
   else mostrarMensagem('msgSync', `Tudo sincronizado (${r.enviados} enviados).`, 'ok');
   await atualizarStatusConexao();
 });
