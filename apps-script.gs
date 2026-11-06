@@ -81,6 +81,14 @@ const TABELAS = {
   },
   // Itens da requisição — várias linhas podem apontar pro mesmo idMaterial
   // (mesma requisição), ligadas pelo campo Material.
+  // Listas de escolhas editáveis pela tela de Administrador (locais, solicitantes, marcas).
+  listas: {
+    aba: 'Listas',
+    chaveApp: 'id',
+    chaveColuna: 'ID',
+    campos: { id: 'ID', lista: 'Lista', valor: 'Valor', ordem: 'Ordem' },
+    colunasNaOrdem: ['ID', 'Lista', 'Valor', 'Ordem'],
+  },
   itensStatus: {
     aba: 'itens status',
     chaveApp: 'id',
@@ -116,6 +124,10 @@ function lerTabelaComoObjetos_(nomeTabela) {
   const { cabecalho, valores } = lerAba_(cfg);
   if (valores.length < 2) return [];
   const camposInvertidos = Object.fromEntries(Object.entries(cfg.campos).map(([k, v]) => [v, k]));
+  // Movimentos e itens da requisição guardam o código só como referência.
+  // Se o Google Sheets já converteu um deles em número (perdendo o ponto),
+  // recupera a versão COM ponto olhando o cadastro do Estoque.
+  const mapaCodigos = nomeTabela === 'estoque' ? null : mapaCodigosComPonto_();
   const objetos = valores.slice(1).map((linha) => {
     const obj = {};
     cabecalho.forEach((col, idx) => {
@@ -125,6 +137,10 @@ function lerTabelaComoObjetos_(nomeTabela) {
       if (valor !== '' && valor !== null && CAMPOS_NAO_TEXTO.indexOf(chaveApp) === -1) {
         valor = String(valor);
       }
+      if (chaveApp === 'idFluig' && mapaCodigos && valor !== '' && String(valor).indexOf('.') === -1) {
+        valor = mapaCodigos[normalizarParaComparar_(valor)] || valor;
+      }
+      if (chaveApp === 'tipoReq') valor = normalizarTipoReq_(valor);
       obj[chaveApp] = valor;
     });
     return obj;
@@ -143,6 +159,30 @@ function lerTabelaComoObjetos_(nomeTabela) {
   }
 
   return objetos;
+}
+
+// "Desemb.", "desemb", "DESEMB." etc -> "Desembarque".
+function normalizarTipoReq_(valor) {
+  const texto = String(valor === null || valor === undefined ? '' : valor).trim();
+  return /^desemb/i.test(texto) ? 'Desembarque' : valor;
+}
+
+// Roda UMA vez pelo editor do Apps Script: troca "Desemb." (e variações)
+// por "Desembarque" na coluna TIPO DE REQ. da aba requisiçao.
+function padronizarDesembarqueNaPlanilha() {
+  const cfg = TABELAS.requisicoes;
+  const { aba, cabecalho, valores } = lerAba_(cfg);
+  const col = cabecalho.indexOf(cfg.campos.tipoReq);
+  if (col === -1) { Logger.log('Coluna "' + cfg.campos.tipoReq + '" não encontrada.'); return; }
+  let trocados = 0;
+  for (let i = 1; i < valores.length; i++) {
+    const atual = String(valores[i][col]).trim();
+    if (/^desemb/i.test(atual) && atual !== 'Desembarque') {
+      aba.getRange(i + 1, col + 1).setValue('Desembarque');
+      trocados++;
+    }
+  }
+  Logger.log('RESULTADO: ' + trocados + ' linha(s) trocada(s) para "Desembarque".');
 }
 
 // Atualiza (ou cria) uma linha, escrevendo SÓ nas colunas mapeadas em
@@ -164,6 +204,34 @@ function normalizarParaComparar_(valor) {
   return String(valor || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 }
 
+// Mapa "código sem pontuação" -> "código como foi cadastrado no Estoque
+// (com ponto)". Só inclui códigos que realmente têm ponto.
+let cacheMapaCodigos_ = null;
+function mapaCodigosComPonto_() {
+  if (cacheMapaCodigos_) return cacheMapaCodigos_;
+  const mapa = {};
+  try {
+    const cfg = TABELAS.estoque;
+    const { cabecalho, valores } = lerAba_(cfg);
+    const col = cabecalho.indexOf(cfg.chaveColuna);
+    if (col !== -1) {
+      for (let i = 1; i < valores.length; i++) {
+        const texto = String(valores[i][col]);
+        if (texto.indexOf('.') !== -1) mapa[normalizarParaComparar_(texto)] = texto;
+      }
+    }
+  } catch (e) {}
+  cacheMapaCodigos_ = mapa;
+  return mapa;
+}
+
+// Escreve um código como TEXTO PURO ("@" = formato texto do Sheets), pra
+// o Sheets nunca transformar "10.603901" em número e perder o ponto.
+function escreverCodigoComoTexto_(celula, codigo) {
+  celula.setNumberFormat('@');
+  celula.setValue(String(codigo));
+}
+
 function upsertLinha_(cfg, registro) {
   const { aba, cabecalho, valores } = lerAba_(cfg);
   const colChave = cabecalho.indexOf(cfg.chaveColuna);
@@ -173,6 +241,7 @@ function upsertLinha_(cfg, registro) {
 
   const valorChave = registro[cfg.chaveApp];
   let idxLinhaExistente = valores.findIndex((linha, idx) => idx > 0 && String(linha[colChave]) === String(valorChave));
+  let achouPorCodigoParecido = false;
 
   // Proteção extra, direto no servidor — funciona pra qualquer aparelho,
   // mesmo com uma versão antiga do app: se não achou por código EXATO,
@@ -184,8 +253,12 @@ function upsertLinha_(cfg, registro) {
     const normalizado = normalizarParaComparar_(valorChave);
     if (normalizado) {
       idxLinhaExistente = valores.findIndex((linha, idx) => idx > 0 && normalizarParaComparar_(linha[colChave]) === normalizado);
+      achouPorCodigoParecido = idxLinhaExistente > 0;
     }
   }
+
+  // Coluna que guarda o código Fluig nesta aba (IDFluig, Fluig...), se houver.
+  const nomeColunaCodigo = cfg.campos.idFluig;
 
   if (idxLinhaExistente > 0) {
     Object.entries(cfg.campos).forEach(([chaveApp, nomeColuna]) => {
@@ -193,28 +266,72 @@ function upsertLinha_(cfg, registro) {
       const colIdx = cabecalho.indexOf(nomeColuna);
       if (colIdx === -1) return;
       const celula = aba.getRange(idxLinhaExistente + 1, colIdx + 1);
-      // Força a célula do código (IDFluig) a ser sempre texto puro — não
-      // depende mais de formatar a coluna manualmente na planilha. "@" é o
-      // código do Google Sheets pra "formato de texto".
-      if (nomeColuna === cfg.chaveColuna && cfg.chaveColuna === 'IDFluig') celula.setNumberFormat('@');
+
+      if (nomeColuna === nomeColunaCodigo) {
+        const novo = String(registro[chaveApp]);
+        const atual = String(valores[idxLinhaExistente][colIdx]);
+        // Nunca troca um código COM ponto por um SEM ponto.
+        if (atual.indexOf('.') !== -1 && novo.indexOf('.') === -1) return;
+        // Linha achada só por ser "parecida": preserva o código que já está
+        // na planilha, a menos que ele esteja sem ponto e o novo tenha.
+        if (achouPorCodigoParecido && !(atual.indexOf('.') === -1 && novo.indexOf('.') !== -1)) return;
+        escreverCodigoComoTexto_(celula, novo);
+        return;
+      }
       celula.setValue(valorSeguroParaCelula_(registro[chaveApp]));
     });
   } else {
+    // Já deixa a célula do código formatada como texto ANTES de gravar,
+    // senão o Sheets converte "10.603901" em número na hora do appendRow.
+    const colCodigo = nomeColunaCodigo ? cabecalho.indexOf(nomeColunaCodigo) : -1;
+    if (colCodigo !== -1) aba.getRange(aba.getLastRow() + 1, colCodigo + 1).setNumberFormat('@');
+
     const novaLinha = cabecalho.map((col) => {
       const chaveApp = Object.keys(cfg.campos).find((k) => cfg.campos[k] === col);
-      return chaveApp && registro[chaveApp] !== undefined ? valorSeguroParaCelula_(registro[chaveApp]) : '';
+      if (!chaveApp || registro[chaveApp] === undefined) return '';
+      return chaveApp === 'idFluig' ? String(registro[chaveApp]) : valorSeguroParaCelula_(registro[chaveApp]);
     });
     aba.appendRow(novaLinha);
-    if (cfg.chaveColuna === 'IDFluig') {
-      // Garante que a célula do código, na linha recém-criada, fique como
-      // texto puro — sem isso, o Google Sheets pode "entender" um valor
-      // tipo "10.508822" como número (usando o ponto como separador de
-      // milhar) e perder o ponto de verdade.
-      const linhaNova = aba.getLastRow();
-      const celula = aba.getRange(linhaNova, colChave + 1);
-      celula.setNumberFormat('@');
-      celula.setValue(String(valorChave));
+
+    if (colCodigo !== -1 && registro.idFluig !== undefined && registro.idFluig !== '') {
+      escreverCodigoComoTexto_(aba.getRange(aba.getLastRow(), colCodigo + 1), registro.idFluig);
     }
+  }
+}
+
+// Roda UMA vez pelo editor do Apps Script: formata as colunas de código
+// como texto e devolve o ponto aos códigos de Movimentos e itens status
+// que o Sheets tinha convertido em número (usando o Estoque como
+// referência). Estoque: só lista no log o que ainda estiver sem ponto.
+function corrigirIdsSemPontoNaPlanilha() {
+  const mapa = mapaCodigosComPonto_();
+  let corrigidos = 0;
+  const semReferencia = [];
+
+  ['estoque', 'movimentos', 'itensStatus'].forEach((nome) => {
+    const cfg = TABELAS[nome];
+    const { aba, cabecalho, valores } = lerAba_(cfg);
+    const col = cabecalho.indexOf(cfg.campos.idFluig);
+    if (col === -1 || valores.length < 2) return;
+
+    const novos = [];
+    for (let i = 1; i < valores.length; i++) {
+      let texto = valores[i][col] === '' ? '' : String(valores[i][col]);
+      if (texto && texto.indexOf('.') === -1) {
+        const certo = nome === 'estoque' ? null : mapa[normalizarParaComparar_(texto)];
+        if (certo) { texto = certo; corrigidos++; }
+        else semReferencia.push(nome + ' linha ' + (i + 1) + ': ' + texto);
+      }
+      novos.push([texto]);
+    }
+    const faixa = aba.getRange(2, col + 1, novos.length, 1);
+    faixa.setNumberFormat('@');
+    faixa.setValues(novos);
+  });
+
+  Logger.log('RESULTADO: ' + corrigidos + ' código(s) recuperado(s) com ponto.');
+  if (semReferencia.length) {
+    Logger.log('Ainda SEM ponto (conferir/corrigir à mão no Estoque):\n' + semReferencia.join('\n'));
   }
 }
 
@@ -304,7 +421,21 @@ function doPost(e) {
     const acao = corpo.acao;
     const registro = corpo.registro;
 
+    // Pessoas com acesso (aba "Acessos"): só administrador mexe.
+    if (tabela === 'acessos') {
+      const meuCodigo = String(corpo.codigo || '').trim();
+      if (!ehAdmin_(meuCodigo)) throw new Error('Somente administrador pode alterar os acessos.');
+      alterarAcesso_(acao, registro, meuCodigo);
+      return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (!TABELAS[tabela]) throw new Error('Tabela desconhecida: ' + tabela);
+
+    // As listas de escolhas só podem ser alteradas por administradores.
+    if (tabela === 'listas' && !ehAdmin_(String(corpo.codigo || '').trim())) {
+      throw new Error('Somente administrador pode alterar as listas.');
+    }
 
     if (acao === 'upsert') {
       upsertLinha_(TABELAS[tabela], registro);
@@ -337,8 +468,22 @@ function doGet(e) {
       movimentos: lerTabelaComoObjetos_('movimentos'),
       requisicoes: lerTabelaComoObjetos_('requisicoes'),
       itensStatus: lerTabelaComoObjetos_('itensStatus'),
+      listas: lerTabelaComoObjetos_('listas'),
     };
     return ContentService.createTextOutput(JSON.stringify(dados))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (acao === 'validarAdmin') {
+    const codigo = String(e.parameter.codigo || '').trim();
+    return ContentService.createTextOutput(JSON.stringify({ ok: ehAdmin_(codigo) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (acao === 'listarAcessos') {
+    const codigo = String(e.parameter.codigo || '').trim();
+    const saida = ehAdmin_(codigo) ? { ok: true, pessoas: listarAcessos_() } : { ok: false };
+    return ContentService.createTextOutput(JSON.stringify(saida))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -381,5 +526,98 @@ function validarCodigoAcesso_(codigo) {
   } catch (erro) {
     // Se der qualquer erro checando o acesso, não trava o app por causa disso.
     return { ok: true, nome: '' };
+  }
+}
+
+
+// ---------- Administrador ----------
+// Quem é administrador: na aba "Acessos" da planilha, crie uma coluna
+// chamada "Admin" e escreva "Sim" na linha de cada pessoa que pode editar
+// as listas (locais, solicitantes, marcas). O código de acesso dela é o
+// mesmo que ela já usa para entrar no app.
+function ehAdmin_(codigo) {
+  if (!codigo) return false;
+  try {
+    const aba = pegarPlanilha_().getSheetByName('Acessos');
+    if (!aba) return false;
+    const valores = aba.getDataRange().getValues();
+    const cabecalho = valores[0].map((v) => String(v).trim());
+    const colCodigo = cabecalho.indexOf('Codigo');
+    const colAdmin = cabecalho.indexOf('Admin');
+    if (colCodigo === -1 || colAdmin === -1) return false;
+    for (let i = 1; i < valores.length; i++) {
+      if (String(valores[i][colCodigo]).trim() === codigo) {
+        return /^(sim|s|x|true|1)$/i.test(String(valores[i][colAdmin]).trim());
+      }
+    }
+    return false;
+  } catch (erro) {
+    return false;
+  }
+}
+
+
+// ---------- Pessoas com acesso (aba "Acessos": Nome | Codigo | Admin) ----------
+function abaAcessos_() {
+  const planilha = pegarPlanilha_();
+  let aba = planilha.getSheetByName('Acessos');
+  if (!aba) { aba = planilha.insertSheet('Acessos'); aba.appendRow(['Nome', 'Codigo', 'Admin']); }
+  const cab = aba.getRange(1, 1, 1, Math.max(aba.getLastColumn(), 1)).getValues()[0].map((v) => String(v).trim());
+  if (cab.indexOf('Nome') === -1) aba.getRange(1, cab.length + 1).setValue('Nome');
+  const cab2 = aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0].map((v) => String(v).trim());
+  if (cab2.indexOf('Codigo') === -1) aba.getRange(1, cab2.length + 1).setValue('Codigo');
+  const cab3 = aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0].map((v) => String(v).trim());
+  if (cab3.indexOf('Admin') === -1) aba.getRange(1, cab3.length + 1).setValue('Admin');
+  return aba;
+}
+
+function listarAcessos_() {
+  const aba = abaAcessos_();
+  const valores = aba.getDataRange().getValues();
+  const cab = valores[0].map((v) => String(v).trim());
+  const cN = cab.indexOf('Nome'), cC = cab.indexOf('Codigo'), cA = cab.indexOf('Admin');
+  const saida = [];
+  for (let i = 1; i < valores.length; i++) {
+    const codigo = String(valores[i][cC]).trim();
+    if (!codigo) continue;
+    saida.push({ nome: String(valores[i][cN]).trim(), codigo: codigo, admin: /^(sim|s|x|true|1)$/i.test(String(valores[i][cA]).trim()) });
+  }
+  return saida;
+}
+
+function alterarAcesso_(acao, registro, meuCodigo) {
+  const aba = abaAcessos_();
+  const valores = aba.getDataRange().getValues();
+  const cab = valores[0].map((v) => String(v).trim());
+  const cN = cab.indexOf('Nome') + 1, cC = cab.indexOf('Codigo') + 1, cA = cab.indexOf('Admin') + 1;
+  const codigo = String(registro.codigo || '').trim();
+  const original = String(registro.codigoOriginal || codigo).trim();
+  if (!codigo) throw new Error('Informe o código.');
+
+  const achar = (c) => { for (let i = 1; i < valores.length; i++) if (String(valores[i][cC - 1]).trim() === c) return i + 1; return -1; };
+  const linhaOriginal = achar(original);
+
+  if (acao === 'delete') {
+    if (original === meuCodigo) throw new Error('Você não pode excluir o seu próprio acesso.');
+    if (linhaOriginal > 0) aba.deleteRow(linhaOriginal);
+    return;
+  }
+  if (acao !== 'upsert') return;
+
+  if (codigo !== original && achar(codigo) > 0) throw new Error('Já existe alguém com esse código.');
+  if (linhaOriginal < 0 && achar(codigo) > 0) throw new Error('Já existe alguém com esse código.');
+  const admin = registro.admin ? 'Sim' : '';
+  if (original === meuCodigo && (codigo !== original || !registro.admin)) {
+    throw new Error('Para não perder o seu acesso, não dá para mudar o seu código nem tirar o seu Admin por aqui.');
+  }
+  if (linhaOriginal > 0) {
+    aba.getRange(linhaOriginal, cN).setValue(String(registro.nome || '').trim());
+    aba.getRange(linhaOriginal, cC).setNumberFormat('@').setValue(codigo);
+    aba.getRange(linhaOriginal, cA).setValue(admin);
+  } else {
+    const nova = aba.getLastRow() + 1;
+    aba.getRange(nova, cN).setValue(String(registro.nome || '').trim());
+    aba.getRange(nova, cC).setNumberFormat('@').setValue(codigo);
+    aba.getRange(nova, cA).setValue(admin);
   }
 }

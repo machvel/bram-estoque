@@ -1432,3 +1432,22 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 @media (min-width: 860px) {
   .req-corpo .btn-excluir-item-form { background: #fff !important; color: #d93025 !important; border: 1px solid #d93025 !important; }
 }
+
+/* ---------- Administrador: listas de escolhas ---------- */
+.adm-bloco { margin-bottom: 14px; }
+.adm-titulo { margin: 0 0 4px; font-size: 1rem; }
+.adm-linha { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid var(--divisor, #2a3342); }
+.adm-valor { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.adm-ico { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--divisor, #2a3342); background: transparent; color: inherit; font-size: .9rem; cursor: pointer; }
+.adm-ico:disabled { opacity: .3; cursor: default; }
+.adm-exclui { color: #d93025; }
+.adm-input-edicao, .adm-input-novo { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--divisor, #2a3342); background: transparent; color: inherit; font: inherit; }
+.adm-novo { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--divisor, #2a3342); }
+.adm-bloco { padding: 14px 16px 12px; }
+.adm-pessoas .adm-linha { flex-wrap: wrap; }
+.adm-pessoas .adm-novo { flex-wrap: wrap; }
+.adm-pe-nome, .adm-pe-codigo, .adm-pn-nome, .adm-pn-codigo { flex: 1 1 140px; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--divisor, #2a3342); background: transparent; color: inherit; font: inherit; }
+.adm-check { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; white-space: nowrap; }
+.adm-selo { background: #e8f0fe; color: #1a73e8; border-radius: 99px; padding: 1px 8px; font-size: .72rem; font-weight: 600; }
+.adm-pessoas { margin-bottom: 14px; padding: 14px 16px 12px; }
+.adm-pe-exclui { color: #d93025; }

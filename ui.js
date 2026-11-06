@@ -1,7 +1,7 @@
 // ui.js — liga a interface (estilo AppSheet: listas + FAB + bottom sheets)
 // às regras de negócio de app.js/db.js/sync.js.
 
-const NOME_TELA = { estoque: 'Estoque', requisicoes: 'Requisições', movimentos: 'Últimos movimentos', sincronizar: 'Sincronizar' };
+const NOME_TELA = { estoque: 'Estoque', requisicoes: 'Requisições', movimentos: 'Últimos movimentos', sincronizar: 'Sincronizar', admin: 'Administrador' };
 
 function irParaAba(aba) {
   document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('ativo', b.dataset.aba === aba));
@@ -15,13 +15,14 @@ function irParaAba(aba) {
   document.querySelector('.app-shell').classList.remove('detalhe-aberto');
 
   const fab = document.getElementById('fabAdicionar');
-  fab.classList.toggle('oculto', aba === 'sincronizar' || aba === 'movimentos');
+  fab.classList.toggle('oculto', aba === 'sincronizar' || aba === 'movimentos' || aba === 'admin');
   // No celular, Sincronizar e Últimos movimentos só são acessíveis pelo menu
   // ☰ (somem da barra de baixo). No computador, o CSS mostra tudo sempre.
 
   if (aba === 'requisicoes') renderRequisicoes();
   if (aba === 'estoque') renderEstoque();
   if (aba === 'movimentos') renderMovimentos();
+  if (aba === 'admin') abrirAdmin();
 }
 
 document.querySelectorAll('.nav-item').forEach((btn) => {
@@ -45,6 +46,7 @@ document.querySelectorAll('.drawer-item').forEach((btn) => {
 });
 
 function abaAtiva() {
+  if (!document.getElementById('tela-admin').classList.contains('oculta')) return 'admin';
   return document.getElementById('tela-sincronizar').classList.contains('oculta')
     ? (document.getElementById('tela-requisicoes').classList.contains('oculta') ? 'estoque' : 'requisicoes')
     : 'sincronizar';
@@ -143,7 +145,7 @@ function definirModoFormMovimento(edicao) {
 
 document.getElementById('fabAdicionar').addEventListener('click', () => {
   if (abaAtiva() === 'estoque') { definirModoFormMovimento(false); abrirSheet('modalMovimento'); }
-  else if (abaAtiva() === 'requisicoes') { reiniciarItensNovaReq(); definirPainelItensReq(true); abrirSheet('modalRequisicao'); }
+  else if (abaAtiva() === 'requisicoes') { reiniciarItensNovaReq(); definirPainelItensReq(true); atualizarSelectSolicitante(''); abrirSheet('modalRequisicao'); }
 });
 document.getElementById('btnCancelarMovimento').addEventListener('click', () => fecharSheet('modalMovimento'));
 document.getElementById('btnCancelarRequisicao').addEventListener('click', () => {
@@ -403,7 +405,8 @@ document.getElementById('btnAbrirFiltrosEstoque').addEventListener('click', asyn
 
   // Monta a lista de marcas com as que já existem no estoque, em ordem alfabética.
   const todosItens = await BramDB.getAll('estoque');
-  const marcas = [...new Set(todosItens.map((i) => i.marca).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const marcasLista = (await BramApp.obterLista('marcas')).map((l) => l.valor);
+  const marcas = [...new Set([...marcasLista, ...todosItens.map((i) => i.marca).filter(Boolean)])].sort((a, b) => a.localeCompare(b));
   const selectMarca = document.getElementById('filtroEstoqueMarca');
   selectMarca.innerHTML = '<option value="">Todas</option>' + marcas.map((m) => `<option>${m}</option>`).join('');
   selectMarca.value = filtrosEstoqueAtivos.marca;
@@ -882,6 +885,16 @@ document.getElementById('formRequisicao').addEventListener('submit', async (evt)
     helm: document.getElementById('reqHelm').value.trim(),
     obs: document.getElementById('reqObs').value.trim(),
   };
+  // Se o administrador cadastrou a lista de solicitantes, só vale quem está nela
+  // (ao editar, mantém o nome que já estava, mesmo que não esteja mais na lista).
+  const listaSolic = await BramApp.obterLista('solicitantes');
+  if (listaSolic.length && !listaSolic.some((l) => l.valor.toLowerCase() === dadosForm.solicitante.toLowerCase())) {
+    const reqAtual = idEditando ? await BramDB.get('requisicoes', idEditando) : null;
+    if (!reqAtual || String(reqAtual.solicitante || '').toLowerCase() !== dadosForm.solicitante.toLowerCase()) {
+      mostrarMensagem('msgRequisicao', 'Escolha o solicitante na lista. Se o nome não aparece, peça ao administrador para incluir.', 'erro');
+      return;
+    }
+  }
   try {
     if (idEditando) {
       await BramApp.editarRequisicao({ id: idEditando, ...dadosForm });
@@ -1249,6 +1262,7 @@ function ligarEventosRequisicoes(container, todosItens) {
       document.getElementById('tituloFormRequisicao').textContent = 'Editar requisição';
       document.getElementById('btnCriarOuSalvarRequisicao').textContent = 'Salvar alterações';
       document.getElementById('reqNumero').value = req.reqNumero || '';
+      await atualizarSelectSolicitante(req.solicitante || '');
       document.getElementById('reqSolicitante').value = req.solicitante || '';
       document.getElementById('reqTipoReq').value = req.tipoReq || 'Pedido';
       atualizarVisibilidadeTipo();
@@ -1544,6 +1558,7 @@ document.getElementById('btnPuxarServidor').addEventListener('click', async () =
   mostrarMensagem('msgSync', 'Puxando dados da planilha…');
   try {
     await BramSync.puxarDoServidor();
+    await aplicarListas();
     await BramApp.migrarDuplicadosEstoque();
     mostrarMensagem('msgSync', 'Dados atualizados a partir da planilha.', 'ok');
     await renderEstoque();
@@ -1570,6 +1585,243 @@ document.getElementById('btnReenviarFotos').addEventListener('click', async () =
   await atualizarStatusConexao();
 });
 
+
+// ---------- ADMINISTRADOR: listas de escolhas ----------
+// Locais, solicitantes e marcas ficam na aba "Listas" da planilha e valem
+// para todos os aparelhos. Só quem tem "Sim" na coluna Admin da aba
+// "Acessos" consegue abrir esta tela e alterar as listas.
+const LOCAIS_PADRAO = [...document.querySelectorAll('#movLocal option')].map((o) => o.value).filter(Boolean);
+const LISTAS_ADMIN = [
+  { chave: 'locais', titulo: 'Locais de armazenamento', dica: 'Aparecem no cadastro do item e no filtro do Estoque.' },
+  { chave: 'solicitantes', titulo: 'Solicitantes', dica: 'Quem pode fazer requisição. Com a lista preenchida, só esses nomes são aceitos.' },
+  { chave: 'marcas', titulo: 'Marcas', dica: 'Sugestões ao cadastrar item e opções do filtro de marca.' },
+];
+let adminEditandoId = null;
+
+function escHtml(t) { return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// Reconstrói os campos do app com as listas do administrador.
+// Se uma lista ainda está vazia, o app continua usando as opções que já vinham nele.
+async function aplicarListas() {
+  const locais = await BramApp.obterLista('locais');
+  if (locais.length) {
+    ['movLocal', 'filtroEstoqueLocal', 'modalLocalInput'].forEach((id) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const atual = sel.value;
+      const placeholder = sel.options[0] ? sel.options[0].outerHTML : '<option value=""></option>';
+      let extra = '';
+      if (atual && !locais.some((l) => l.valor === atual)) extra = `<option>${escHtml(atual)}</option>`;
+      sel.innerHTML = placeholder + locais.map((l) => `<option>${escHtml(l.valor)}</option>`).join('') + extra;
+      sel.value = atual;
+    });
+  }
+  await atualizarSelectSolicitante();
+  const marcas = await BramApp.obterLista('marcas');
+  document.getElementById('listaMarcas').innerHTML = marcas.map((l) => `<option value="${escHtml(l.valor)}"></option>`).join('');
+}
+
+
+// Solicitante é uma lista fechada, cadastrada no Administrador. Se a lista ainda
+// está vazia, usa os nomes já usados nas requisições, para não travar ninguém.
+async function atualizarSelectSolicitante(valorAtual) {
+  const sel = document.getElementById('reqSolicitante');
+  if (!sel) return;
+  const atual = valorAtual !== undefined ? valorAtual : sel.value;
+  let nomes = (await BramApp.obterLista('solicitantes')).map((l) => l.valor);
+  if (!nomes.length) {
+    nomes = [...new Set((await BramDB.getAll('requisicoes')).map((r) => String(r.solicitante || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }
+  if (atual && !nomes.includes(atual)) nomes.push(atual); // mantém o nome de requisições antigas ao editar
+  sel.innerHTML = '<option value="">Selecione...</option>' + nomes.map((n) => `<option>${escHtml(n)}</option>`).join('');
+  sel.value = atual || '';
+}
+
+async function abrirAdmin() {
+  const aviso = document.getElementById('adminAviso');
+  const msg = document.getElementById('adminMensagem');
+  const conteudo = document.getElementById('adminConteudo');
+  aviso.classList.remove('oculto-flex');
+  conteudo.classList.add('oculto-flex');
+  msg.textContent = 'Verificando acesso…';
+  if (!navigator.onLine || !BramSync.getBackendUrl()) {
+    msg.textContent = 'Para abrir esta tela é preciso estar com internet.';
+    return;
+  }
+  let ok = false;
+  try { ok = await BramSync.validarAdminServidor(); } catch (e) {
+    msg.textContent = 'Não foi possível conferir o acesso agora. Tente de novo.';
+    return;
+  }
+  if (!ok) {
+    msg.textContent = 'Esta tela é só para administradores. Para liberar seu acesso, escreva "Sim" na coluna Admin, na linha do seu código, na aba Acessos da planilha.';
+    return;
+  }
+  aviso.classList.add('oculto-flex');
+  conteudo.classList.remove('oculto-flex');
+  await renderAdmin();
+}
+
+async function renderAdmin() {
+  const conteudo = document.getElementById('adminConteudo');
+  let html = '<div class="settings-card adm-pessoas" id="admPessoas"><h3 class="adm-titulo">Pessoas com acesso ao app</h3><p class="texto-apoio">Carregando…</p></div>';
+  for (const cfg of LISTAS_ADMIN) {
+    const itens = await BramApp.obterLista(cfg.chave);
+    html += `<div class="settings-card adm-bloco" data-lista="${cfg.chave}">
+      <h3 class="adm-titulo">${cfg.titulo}</h3>
+      <p class="texto-apoio">${cfg.dica}</p>`;
+    if (!itens.length) {
+      html += `<p class="texto-apoio">Lista ainda vazia.</p>
+        <button type="button" class="botao botao-bloco adm-importar">Importar os que já são usados hoje</button>`;
+    }
+    html += itens.map((l, i) => {
+      if (adminEditandoId === l.id) {
+        return `<div class="adm-linha" data-id="${l.id}"><input type="text" class="adm-input-edicao" value="${escHtml(l.valor)}" />
+          <button type="button" class="botao botao-primario adm-salvar-edicao">Salvar</button>
+          <button type="button" class="botao botao-texto adm-cancelar-edicao">Cancelar</button></div>`;
+      }
+      return `<div class="adm-linha" data-id="${l.id}"><span class="adm-valor">${escHtml(l.valor)}</span>
+        <button type="button" class="adm-ico adm-sobe" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button type="button" class="adm-ico adm-desce" aria-label="Descer" ${i === itens.length - 1 ? 'disabled' : ''}>▼</button>
+        <button type="button" class="adm-ico adm-edita" aria-label="Editar">✎</button>
+        <button type="button" class="adm-ico adm-exclui" aria-label="Excluir">✕</button></div>`;
+    }).join('');
+    html += `<div class="adm-novo"><input type="text" class="adm-input-novo" placeholder="Novo item…" />
+        <button type="button" class="botao botao-primario adm-adicionar">Adicionar</button></div>
+      <p class="mensagem adm-msg"></p></div>`;
+  }
+  html += '<p class="texto-apoio" style="padding:0 4px 16px">Alterações valem em todos os aparelhos depois de sincronizar. Renomear ou excluir um item da lista não muda o que já foi gravado em itens e requisições antigas.</p>';
+  conteudo.innerHTML = html;
+  renderAdminPessoas();
+}
+
+document.getElementById('adminConteudo').addEventListener('click', async (evt) => {
+  const bloco = evt.target.closest('.adm-bloco');
+  if (!bloco) return;
+  const lista = bloco.dataset.lista;
+  const linha = evt.target.closest('.adm-linha');
+  const id = linha && linha.dataset.id;
+  const msg = bloco.querySelector('.adm-msg');
+  const erro = (m) => { msg.textContent = m; msg.className = 'mensagem adm-msg erro'; };
+  const refresh = async () => { await renderAdmin(); await aplicarListas(); await atualizarStatusConexao(); if (navigator.onLine) BramSync.sincronizarFila().then(atualizarStatusConexao); };
+  try {
+    if (evt.target.closest('.adm-adicionar')) {
+      const campo = bloco.querySelector('.adm-input-novo');
+      await BramApp.adicionarItemLista(lista, campo.value);
+      await refresh();
+    } else if (evt.target.closest('.adm-sobe')) { await BramApp.moverItemLista(id, -1); await refresh(); }
+    else if (evt.target.closest('.adm-desce')) { await BramApp.moverItemLista(id, 1); await refresh(); }
+    else if (evt.target.closest('.adm-edita')) { adminEditandoId = id; await renderAdmin(); }
+    else if (evt.target.closest('.adm-cancelar-edicao')) { adminEditandoId = null; await renderAdmin(); }
+    else if (evt.target.closest('.adm-salvar-edicao')) {
+      await BramApp.renomearItemLista(id, linha.querySelector('.adm-input-edicao').value);
+      adminEditandoId = null; await refresh();
+    } else if (evt.target.closest('.adm-exclui')) {
+      const nome = linha.querySelector('.adm-valor').textContent;
+      if (!confirm(`Excluir "${nome}" da lista? O que já foi gravado com esse nome não muda.`)) return;
+      await BramApp.excluirItemLista(id); await refresh();
+    } else if (evt.target.closest('.adm-importar')) {
+      let valores = [];
+      if (lista === 'locais') valores = LOCAIS_PADRAO;
+      if (lista === 'solicitantes') valores = (await BramDB.getAll('requisicoes')).map((r) => String(r.solicitante || '').trim()).filter(Boolean);
+      if (lista === 'marcas') valores = (await BramDB.getAll('estoque')).map((i) => String(i.marca || '').trim()).filter(Boolean);
+      valores = [...new Set(valores)].sort((a, b) => lista === 'locais' ? 0 : a.localeCompare(b));
+      if (!valores.length) return erro('Não há nada para importar ainda.');
+      await BramApp.importarParaLista(lista, valores);
+      await refresh();
+    }
+  } catch (e) { erro(e.message); }
+});
+
+// ---- Pessoas com acesso (aba Acessos da planilha, sem precisar abrir a planilha) ----
+let adminEditandoCodigo = null;
+
+function gerarCodigoAcesso() {
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 6; i++) c += letras[Math.floor(Math.random() * letras.length)];
+  return c;
+}
+
+async function renderAdminPessoas(mensagem) {
+  const el = document.getElementById('admPessoas');
+  if (!el) return;
+  let pessoas;
+  try { pessoas = await BramSync.listarAcessosServidor(); } catch (e) {
+    el.innerHTML = `<h3 class="adm-titulo">Pessoas com acesso ao app</h3><p class="mensagem erro">Não foi possível carregar: ${escHtml(e.message)}</p>`;
+    return;
+  }
+  const meu = localStorage.getItem('bram_acesso_codigo') || '';
+  let html = `<h3 class="adm-titulo">Pessoas com acesso ao app</h3>
+    <p class="texto-apoio">Cada pessoa entra com o próprio código. Quem for Administrador pode abrir esta tela. Para tirar o acesso de alguém, é só excluir.</p>`;
+  html += pessoas.map((p) => {
+    if (adminEditandoCodigo === p.codigo) {
+      const eu = p.codigo === meu;
+      return `<div class="adm-linha adm-edicao-pessoa" data-codigo="${escHtml(p.codigo)}">
+        <input type="text" class="adm-pe-nome" value="${escHtml(p.nome)}" placeholder="Nome" />
+        <input type="text" class="adm-pe-codigo" value="${escHtml(p.codigo)}" placeholder="Código" ${eu ? 'disabled' : ''} />
+        <label class="adm-check"><input type="checkbox" class="adm-pe-admin" ${p.admin ? 'checked' : ''} ${eu ? 'disabled' : ''} /> Admin</label>
+        <button type="button" class="botao botao-primario adm-pe-salvar">Salvar</button>
+        <button type="button" class="botao botao-texto adm-pe-cancelar">Cancelar</button></div>`;
+    }
+    const eu = p.codigo === meu;
+    return `<div class="adm-linha" data-codigo="${escHtml(p.codigo)}">
+      <span class="adm-valor"><strong>${escHtml(p.nome || '(sem nome)')}</strong>${eu ? ' <em>(você)</em>' : ''}${p.admin ? ' <span class="adm-selo">Admin</span>' : ''}<br><small>Código: ${escHtml(p.codigo)}</small></span>
+      <button type="button" class="adm-ico adm-pe-edita" aria-label="Editar">✎</button>
+      <button type="button" class="adm-ico adm-pe-exclui" aria-label="Excluir" ${eu ? 'disabled' : ''}>✕</button></div>`;
+  }).join('');
+  html += `<div class="adm-novo adm-novo-pessoa">
+      <input type="text" class="adm-pn-nome" placeholder="Nome da pessoa" />
+      <input type="text" class="adm-pn-codigo" placeholder="Código" />
+      <button type="button" class="botao adm-pn-gerar">Gerar</button>
+      <label class="adm-check"><input type="checkbox" class="adm-pn-admin" /> Admin</label>
+      <button type="button" class="botao botao-primario adm-pn-adicionar">Adicionar</button></div>
+    <p class="mensagem adm-msg ${mensagem && mensagem.tipo ? mensagem.tipo : ''}">${mensagem ? escHtml(mensagem.texto) : ''}</p>`;
+  el.innerHTML = html;
+}
+
+document.getElementById('adminConteudo').addEventListener('click', async (evt) => {
+  const el = evt.target.closest('#admPessoas');
+  if (!el) return;
+  const linha = evt.target.closest('.adm-linha');
+  const codigoLinha = linha && linha.dataset.codigo;
+  const erro = (m) => renderAdminPessoas({ texto: m, tipo: 'erro' });
+  try {
+    if (evt.target.closest('.adm-pn-gerar')) {
+      el.querySelector('.adm-pn-codigo').value = gerarCodigoAcesso();
+    } else if (evt.target.closest('.adm-pn-adicionar')) {
+      const nome = el.querySelector('.adm-pn-nome').value.trim();
+      const codigo = el.querySelector('.adm-pn-codigo').value.trim();
+      if (!nome) return erro('Digite o nome da pessoa.');
+      if (!codigo) return erro('Digite ou gere um código.');
+      await BramSync.alterarAcessoServidor('upsert', { nome, codigo, admin: el.querySelector('.adm-pn-admin').checked });
+      await renderAdminPessoas({ texto: `${nome} adicionado(a). Passe o código ${codigo} para a pessoa.`, tipo: 'ok' });
+    } else if (evt.target.closest('.adm-pe-edita')) {
+      adminEditandoCodigo = codigoLinha; await renderAdminPessoas();
+    } else if (evt.target.closest('.adm-pe-cancelar')) {
+      adminEditandoCodigo = null; await renderAdminPessoas();
+    } else if (evt.target.closest('.adm-pe-salvar')) {
+      const nome = linha.querySelector('.adm-pe-nome').value.trim();
+      const codigo = linha.querySelector('.adm-pe-codigo').value.trim();
+      if (!nome || !codigo) return erro('Preencha nome e código.');
+      await BramSync.alterarAcessoServidor('upsert', { nome, codigo, codigoOriginal: codigoLinha, admin: linha.querySelector('.adm-pe-admin').checked });
+      adminEditandoCodigo = null; await renderAdminPessoas({ texto: 'Alterações salvas.', tipo: 'ok' });
+    } else if (evt.target.closest('.adm-pe-exclui')) {
+      if (!confirm('Excluir o acesso desta pessoa? Ela não vai conseguir mais entrar no app.')) return;
+      await BramSync.alterarAcessoServidor('delete', { codigo: codigoLinha });
+      await renderAdminPessoas({ texto: 'Acesso excluído.', tipo: 'ok' });
+    }
+  } catch (e) { erro(e.message); }
+});
+
+document.getElementById('adminConteudo').addEventListener('keydown', (evt) => {
+  if (evt.key !== 'Enter') return;
+  const bloco = evt.target.closest('.adm-bloco');
+  if (!bloco) return;
+  if (evt.target.classList.contains('adm-input-novo')) { evt.preventDefault(); bloco.querySelector('.adm-adicionar').click(); }
+  if (evt.target.classList.contains('adm-input-edicao')) { evt.preventDefault(); bloco.querySelector('.adm-salvar-edicao').click(); }
+});
+
 // ---------- Inicialização ----------
 
 // Puxa dados da planilha automaticamente, sem perguntar nada — só quando
@@ -1578,6 +1830,7 @@ async function puxarAutomaticamente() {
   if (!navigator.onLine || !BramSync.getBackendUrl()) return;
   try {
     await BramSync.puxarDoServidor();
+    await aplicarListas();
     await BramApp.migrarDuplicadosEstoque();
     const abaAtual = document.querySelector('.nav-item.ativo')?.dataset.aba;
     if (abaAtual === 'estoque') await renderEstoque();
@@ -1629,6 +1882,7 @@ window.addEventListener('appinstalled', () => {
   }
   await BramDB.abrirDB();
   await BramApp.migrarDuplicadosEstoque();
+  await aplicarListas();
   await renderEstoque();
   await atualizarStatusConexao();
 

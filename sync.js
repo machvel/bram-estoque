@@ -38,6 +38,42 @@ async function validarCodigoAcessoServidor(codigo) {
   return resp.json();
 }
 
+// Confere no servidor se o código deste aparelho é de um administrador.
+async function validarAdminServidor() {
+  const url = getBackendUrl();
+  if (!url) throw new Error('sem-url');
+  const codigo = localStorage.getItem('bram_acesso_codigo') || '';
+  const resp = await fetch(url + '?acao=validarAdmin&codigo=' + encodeURIComponent(codigo));
+  if (!resp.ok) throw new Error('erro-http-' + resp.status);
+  const r = await resp.json();
+  return r.ok === true;
+}
+
+// Pessoas com acesso (tela Administrador). Falam direto com o servidor, sem fila.
+async function listarAcessosServidor() {
+  const url = getBackendUrl();
+  if (!url) throw new Error('Configure o endereço do backend primeiro.');
+  const codigo = localStorage.getItem('bram_acesso_codigo') || '';
+  const resp = await fetch(url + '?acao=listarAcessos&codigo=' + encodeURIComponent(codigo));
+  if (!resp.ok) throw new Error('Erro ' + resp.status);
+  const r = await resp.json();
+  if (!r.ok) throw new Error('Sem permissão.');
+  return r.pessoas || [];
+}
+
+async function alterarAcessoServidor(acao, registro) {
+  const url = getBackendUrl();
+  if (!url) throw new Error('Configure o endereço do backend primeiro.');
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ tabela: 'acessos', acao, registro, codigo: localStorage.getItem('bram_acesso_codigo') || '' }),
+  });
+  if (!resp.ok) throw new Error('Erro ' + resp.status);
+  const r = await resp.json();
+  if (!r.ok) throw new Error(String(r.erro || 'Erro').replace(/^Error:\s*/, ''));
+}
+
 async function enviarItemFila(url, item) {
   const controlador = new AbortController();
   const tempoLimite = setTimeout(() => controlador.abort(), 30000); // 30s por item
@@ -50,6 +86,7 @@ async function enviarItemFila(url, item) {
         tabela: item.tabela,
         acao: item.acao,
         registro: item.registro,
+        codigo: localStorage.getItem('bram_acesso_codigo') || '', // usado para conferir se é administrador (listas)
       }),
       signal: controlador.signal,
     });
@@ -131,6 +168,23 @@ async function puxarDoServidor() {
   }
   for (const registro of dados.itensStatus || []) await BramDB.put('itensStatus', normalizarIdFluig(registro));
 
+  // Listas de escolhas (locais, solicitantes, marcas): a planilha manda.
+  // Apaga localmente o que não existe mais lá, exceto se ainda há alteração
+  // de lista esperando para ser enviada (para não perder o que acabou de ser feito).
+  if (Array.isArray(dados.listas)) {
+    const pendentes = (await BramDB.getAll('fila')).some((f) => f.tabela === 'listas');
+    if (!pendentes) {
+      const ids = new Set(dados.listas.map((l) => String(l.id)));
+      for (const local of await BramDB.getAll('listas')) {
+        if (!ids.has(String(local.id))) await BramDB.del('listas', local.id);
+      }
+    }
+    for (const l of dados.listas) {
+      if (!l.id) continue;
+      await BramDB.put('listas', { id: String(l.id), lista: String(l.lista || ''), valor: String(l.valor || ''), ordem: Number(l.ordem) || 0 });
+    }
+  }
+
   return dados;
 }
 
@@ -148,4 +202,7 @@ window.BramSync = {
   testarConexaoBackend,
   sincronizarFila,
   puxarDoServidor,
+  validarAdminServidor,
+  listarAcessosServidor,
+  alterarAcessoServidor,
 };
