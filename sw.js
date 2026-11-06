@@ -5,7 +5,7 @@
 // cache se estiver sem internet. Assim, toda vez que você atualizar um
 // arquivo no GitHub, quem tiver internet já pega a versão nova na hora,
 // sem precisar lembrar de trocar nenhum número aqui.
-const CACHE_NOME = 'bram-estoque-v14';
+const CACHE_NOME = 'bram-estoque-v16';
 const ARQUIVOS = [
   './',
   './index.html',

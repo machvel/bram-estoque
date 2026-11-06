@@ -1481,12 +1481,16 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 }
 
 /* Telas largas: TRÊS colunas — Requisições | Adicionar item | Cadastrar material.
-   Os dois cartões dividem o que sobra depois de reservar 300px para a lista. */
+   As três colunas têm a mesma largura. */
 @media (min-width: 1240px) {
-  body.cad-lateral { --larg-cartao: calc((100vw - 568px) / 2); }
+  body.cad-lateral { --larg-cartao: calc((100vw - 268px) / 3); }
   body.cad-lateral #modalAddItemReq:not(.oculta) { right: calc(var(--larg-cartao) + 24px) !important; width: var(--larg-cartao) !important; }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) { width: var(--larg-cartao); }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)):has(#modalRequisicao:not(.oculta)) .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas {
+    margin: 12px calc(2 * var(--larg-cartao) + 36px) 12px 12px !important;
+  }
+  /* Requisição JÁ criada (sem o formulário de Nova requisição aberto): mesmo encolhimento da lista */
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) .app-shell main.telas {
     margin: 12px calc(2 * var(--larg-cartao) + 36px) 12px 12px !important;
   }
 }
@@ -1496,4 +1500,9 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
   body.cad-lateral #modalAddItemReq:not(.oculta) { right: calc((100vw - 220px) / 2 - 18px + 24px) !important; width: calc((100vw - 220px) / 2 - 18px) !important; }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) { width: calc((100vw - 220px) / 2 - 18px); }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)) .app-shell main.telas { visibility: hidden !important; }
+}
+
+/* Com o cadastro de material aberto, o cartão de descrição da requisição (metade direita) não aparece por trás. */
+@media (min-width: 860px) {
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) .req-corpo { visibility: hidden !important; }
 }
