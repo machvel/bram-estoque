@@ -16,6 +16,18 @@ const STORES = {
 
 let dbPromise = null;
 
+function mostrarAvisoBancoTravado(mostrar) {
+  const ID = 'avisoBancoTravado';
+  const existente = document.getElementById(ID);
+  if (!mostrar) { if (existente) existente.remove(); return; }
+  if (existente || !document.body) return;
+  const div = document.createElement('div');
+  div.id = ID;
+  div.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.85);color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font:16px/1.5 sans-serif';
+  div.innerHTML = '<div style="max-width:420px"><h2 style="margin:0 0 12px">Atualização do app travada</h2><p>Existe outra aba ou janela do BRAM Estoque aberta com a versão antiga.</p><p><b>Feche todas as outras abas e janelas do app</b> (inclusive o app instalado) e esta tela continua sozinha. Se não sumir, feche o navegador por completo e abra de novo.</p></div>';
+  document.body.appendChild(div);
+}
+
 function abrirDB() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
@@ -50,7 +62,17 @@ function abrirDB() {
       }
     };
 
-    req.onsuccess = (evt) => resolve(evt.target.result);
+    // Se outra aba/janela do app (versão antiga) ainda estiver aberta, a atualização
+    // do banco fica esperando ela fechar e o app parece "morto". Avisa na tela.
+    req.onblocked = () => mostrarAvisoBancoTravado(true);
+
+    req.onsuccess = (evt) => {
+      const db = evt.target.result;
+      // Se uma versão futura do app precisar atualizar o banco, esta aba libera a vez.
+      db.onversionchange = () => { db.close(); dbPromise = null; };
+      mostrarAvisoBancoTravado(false);
+      resolve(db);
+    };
     req.onerror = (evt) => reject(evt.target.error);
   });
   return dbPromise;
