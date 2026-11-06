@@ -1462,13 +1462,9 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 .botao-cadastrar-material:hover { background: rgba(26,115,232,.18); }
 
 @media (min-width: 860px) {
-  /* Ordem: Requisições | Adicionar item | Cadastrar material */
-  /* Com o cadastro aberto, a lista de requisições some: ficam só os dois cartões, cada um em metade da tela. */
-  body.cad-lateral #modalAddItemReq:not(.oculta) { right: calc((100vw - 220px) / 2 - 18px + 24px) !important; width: calc((100vw - 220px) / 2 - 18px) !important; }
-  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) .app-shell main.telas { visibility: hidden !important; }
   body.cad-lateral #modalRequisicao:not(.oculta) { visibility: hidden; }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) {
-    inset: auto; top: 67px; right: 12px; bottom: 12px; width: calc((100vw - 220px) / 2 - 18px);
+    inset: auto; top: 67px; right: 12px; bottom: 12px;
     background: transparent; display: block; pointer-events: none; z-index: 60;
   }
   body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) .sheet-caixa {
@@ -1482,4 +1478,22 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
     display: flex; align-items: center; justify-content: center; background: #1a73e8; color: #fff;
     border-radius: 20px 20px 0 0; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; font-size: .95rem;
   }
+}
+
+/* Telas largas: TRÊS colunas — Requisições | Adicionar item | Cadastrar material.
+   Os dois cartões dividem o que sobra depois de reservar 300px para a lista. */
+@media (min-width: 1240px) {
+  body.cad-lateral { --larg-cartao: calc((100vw - 568px) / 2); }
+  body.cad-lateral #modalAddItemReq:not(.oculta) { right: calc(var(--larg-cartao) + 24px) !important; width: var(--larg-cartao) !important; }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) { width: var(--larg-cartao); }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)):has(#modalRequisicao:not(.oculta)) .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas {
+    margin: 12px calc(2 * var(--larg-cartao) + 36px) 12px 12px !important;
+  }
+}
+
+/* Telas menores (de 860 a 1239px): não cabem três colunas — a lista some enquanto o cadastro está aberto. */
+@media (min-width: 860px) and (max-width: 1239px) {
+  body.cad-lateral #modalAddItemReq:not(.oculta) { right: calc((100vw - 220px) / 2 - 18px + 24px) !important; width: calc((100vw - 220px) / 2 - 18px) !important; }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) { width: calc((100vw - 220px) / 2 - 18px); }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) .app-shell main.telas { visibility: hidden !important; }
 }
