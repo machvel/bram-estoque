@@ -3,13 +3,14 @@
 // mais uma fila de alterações pendentes que ainda não foram enviadas ao servidor.
 
 const DB_NAME = 'bram-estoque-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   estoque: 'idFluig',
   movimentos: 'id',
   requisicoes: 'id',
   itensStatus: 'id',
+  listas: 'id',
   fila: 'id',
 };
 
@@ -39,6 +40,10 @@ function abrirDB() {
         const s = db.createObjectStore('itensStatus', { keyPath: 'id' });
         s.createIndex('requisicaoId', 'requisicaoId');
         s.createIndex('idFluig', 'idFluig');
+      }
+      if (!db.objectStoreNames.contains('listas')) {
+        const s = db.createObjectStore('listas', { keyPath: 'id' });
+        s.createIndex('lista', 'lista');
       }
       if (!db.objectStoreNames.contains('fila')) {
         db.createObjectStore('fila', { keyPath: 'id', autoIncrement: true });

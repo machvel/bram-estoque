@@ -430,6 +430,67 @@ async function atualizarStatusRequisicao(requisicaoId) {
   await BramDB.enfileirar('requisicoes', 'upsert', requisicao);
 }
 
+
+// ---------- Listas de escolhas (Administrador) ----------
+// Cada linha: { id, lista, valor, ordem }. "lista" = locais | solicitantes | marcas.
+async function obterLista(lista) {
+  return (await BramDB.getAll('listas'))
+    .filter((l) => l.lista === lista)
+    .sort((x, y) => (x.ordem - y.ordem) || String(x.valor).localeCompare(String(y.valor)));
+}
+
+async function gravarLinhaLista(linha) {
+  await BramDB.put('listas', linha);
+  await BramDB.enfileirar('listas', 'upsert', linha);
+}
+
+async function adicionarItemLista(lista, valor) {
+  const texto = String(valor || '').trim();
+  if (!texto) throw new Error('Digite o nome.');
+  const atuais = await obterLista(lista);
+  if (atuais.some((l) => l.valor.toLowerCase() === texto.toLowerCase())) throw new Error('Esse nome já está na lista.');
+  const ordem = atuais.length ? Math.max(...atuais.map((l) => l.ordem)) + 1 : 1;
+  await gravarLinhaLista({ id: lista + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), lista, valor: texto, ordem });
+}
+
+async function renomearItemLista(id, novoValor) {
+  const linha = await BramDB.get('listas', id);
+  if (!linha) throw new Error('Não encontrado.');
+  const texto = String(novoValor || '').trim();
+  if (!texto) throw new Error('Digite o nome.');
+  const outros = (await obterLista(linha.lista)).filter((l) => l.id !== id);
+  if (outros.some((l) => l.valor.toLowerCase() === texto.toLowerCase())) throw new Error('Esse nome já está na lista.');
+  linha.valor = texto;
+  await gravarLinhaLista(linha);
+}
+
+async function excluirItemLista(id) {
+  await BramDB.del('listas', id);
+  await BramDB.enfileirar('listas', 'delete', { id });
+}
+
+// Troca a posição do item com o vizinho (direcao = -1 sobe, +1 desce).
+async function moverItemLista(id, direcao) {
+  const linha = await BramDB.get('listas', id);
+  if (!linha) return;
+  const lista = await obterLista(linha.lista);
+  const i = lista.findIndex((l) => l.id === id);
+  const j = i + direcao;
+  if (i < 0 || j < 0 || j >= lista.length) return;
+  // Renumera tudo em sequência, para evitar empates.
+  const nova = lista.slice();
+  [nova[i], nova[j]] = [nova[j], nova[i]];
+  for (let k = 0; k < nova.length; k++) {
+    if (nova[k].ordem !== k + 1) { nova[k].ordem = k + 1; await gravarLinhaLista(nova[k]); }
+  }
+}
+
+async function importarParaLista(lista, valores) {
+  for (const v of valores) {
+    try { await adicionarItemLista(lista, v); } catch (e) { /* repetido: ignora */ }
+  }
+}
+
 window.BramApp = {
   registrarMovimento,
   atualizarDadosItem,
@@ -440,6 +501,12 @@ window.BramApp = {
   editarRequisicao,
   excluirRequisicao,
   excluirItemRequisicao,
+  obterLista,
+  adicionarItemLista,
+  renomearItemLista,
+  excluirItemLista,
+  moverItemLista,
+  importarParaLista,
   definirStatusRequisicao,
   adicionarItemRequisicao,
   editarItemRequisicao,

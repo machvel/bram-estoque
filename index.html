@@ -161,6 +161,12 @@
       </div>
     </section>
 
+    <!-- ADMINISTRADOR (só quem é admin na planilha consegue editar as listas) -->
+    <section class="tela oculta" id="tela-admin">
+      <div class="settings-card" id="adminAviso"><p class="texto-apoio" id="adminMensagem">Verificando acesso…</p></div>
+      <div id="adminConteudo" class="oculto-flex"></div>
+    </section>
+
     <!-- SINCRONIZAR (vive dentro do menu lateral, não na navegação inferior) -->
     <section class="tela oculta" id="tela-sincronizar">
       <div class="settings-card">
@@ -221,6 +227,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M21 6H8a5 5 0 000 10h13"/><path d="M7 22l-4-4 4-4"/><path d="M3 18h13a5 5 0 000-10"/></svg>
       <span>Sincronizar</span>
     </button>
+    <button class="nav-item nav-item-desktop" data-aba="admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3h0a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v0a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      <span>Administrador</span>
+    </button>
   </nav>
 
   <!-- Menu lateral (drawer), estilo AppSheet -->
@@ -247,6 +257,10 @@
     <button class="drawer-item" data-aba="sincronizar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M21 6H8a5 5 0 000 10h13"/><path d="M7 22l-4-4 4-4"/><path d="M3 18h13a5 5 0 000-10"/></svg>
       Sincronizar
+    </button>
+    <button class="drawer-item" data-aba="admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3h0a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v0a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      Administrador
     </button>
     <button class="drawer-item oculto-flex" id="btnInstalarApp">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -288,7 +302,7 @@
 
         <div class="linha-2-campos">
           <div class="campo"><label>P/N</label><input type="text" id="movPn" placeholder="ex: 1R-0766" /></div>
-          <div class="campo"><label>Marca</label><input type="text" id="movMarca" placeholder="ex: Caterpillar" /></div>
+          <div class="campo"><label>Marca</label><input type="text" id="movMarca" list="listaMarcas" placeholder="ex: Caterpillar" /></div>
         </div>
         <div class="campo">
           <label>Item Crítico</label>
@@ -364,6 +378,8 @@
     </div>
   </div>
   <datalist id="listaEstoque"></datalist>
+  <datalist id="listaSolicitantes"></datalist>
+  <datalist id="listaMarcas"></datalist>
 
   <!-- Bottom sheet: nova requisição -->
   <div class="modal-sheet oculta" id="modalRequisicao">
@@ -372,7 +388,7 @@
       <p class="sheet-titulo" id="tituloFormRequisicao">Nova requisição</p>
       <form id="formRequisicao">
         <div class="campo"><label>Número da requisição</label><input type="text" id="reqNumero" placeholder="ex: 1102366" /></div>
-        <div class="campo"><label>Solicitante</label><input type="text" id="reqSolicitante" required /></div>
+        <div class="campo"><label>Solicitante</label><select id="reqSolicitante" required><option value="">Selecione...</option></select></div>
         <div class="campo">
           <label>Tipo de requisição</label>
           <select id="reqTipoReq">
