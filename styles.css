@@ -1451,3 +1451,34 @@ code { font-family: var(--mono); background: #F1F3F4; padding: 1px 5px; border-r
 .adm-selo { background: #e8f0fe; color: #1a73e8; border-radius: 99px; padding: 1px 8px; font-size: .72rem; font-weight: 600; }
 .adm-pessoas { margin-bottom: 14px; padding: 14px 16px 12px; }
 .adm-pe-exclui { color: #d93025; }
+
+
+/* ---------- Adicionar item: botão "Cadastrar material novo" + cartão lateral de cadastro ---------- */
+.botao-cadastrar-material {
+  width: 100%; padding: 12px; margin: 2px 0 14px; border-radius: 12px; cursor: pointer;
+  border: 1.5px dashed #1a73e8; background: rgba(26,115,232,.10); color: #8ab4f8;
+  font-weight: 600; font-size: .95rem;
+}
+.botao-cadastrar-material:hover { background: rgba(26,115,232,.18); }
+
+@media (min-width: 860px) {
+  /* Ordem: Requisições | Adicionar item | Cadastrar material */
+  body.cad-lateral #modalAddItemReq:not(.oculta) { right: 424px !important; width: 400px !important; }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)):has(#modalRequisicao:not(.oculta)) .app-shell:has(#tela-requisicoes:not(.oculta)) main.telas { margin: 12px 836px 12px 12px !important; }
+  body.cad-lateral #modalRequisicao:not(.oculta) { visibility: hidden; }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) {
+    inset: auto; top: 67px; right: 12px; bottom: 12px; width: 400px;
+    background: transparent; display: block; pointer-events: none; z-index: 60;
+  }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) .sheet-caixa {
+    pointer-events: auto; width: 100%; max-width: none; height: 100%; max-height: none; overflow-y: auto;
+    border-radius: 20px; background: #141a24 !important; box-shadow: 0 6px 20px rgba(0,0,0,.6);
+    padding: 0 22px 22px; --superficie: #141a24;
+  }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) .sheet-alca { display: none; }
+  body.cad-lateral:has(#modalAddItemReq:not(.oculta)) #modalMovimento:not(.oculta) .sheet-titulo {
+    position: sticky; top: 0; z-index: 3; margin: 0 -22px 16px; height: 44px; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center; background: #1a73e8; color: #fff;
+    border-radius: 20px 20px 0 0; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; font-size: .95rem;
+  }
+}

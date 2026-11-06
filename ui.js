@@ -147,7 +147,7 @@ document.getElementById('fabAdicionar').addEventListener('click', () => {
   if (abaAtiva() === 'estoque') { definirModoFormMovimento(false); abrirSheet('modalMovimento'); }
   else if (abaAtiva() === 'requisicoes') { reiniciarItensNovaReq(); definirPainelItensReq(true); atualizarSelectSolicitante(''); abrirSheet('modalRequisicao'); }
 });
-document.getElementById('btnCancelarMovimento').addEventListener('click', () => fecharSheet('modalMovimento'));
+document.getElementById('btnCancelarMovimento').addEventListener('click', () => fecharCadastroMaterial());
 document.getElementById('btnCancelarRequisicao').addEventListener('click', () => {
   fecharSheet('modalRequisicao');
   delete document.getElementById('formRequisicao').dataset.editando;
@@ -639,7 +639,7 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
     limparFoto();
     await renderEstoque();
     await atualizarStatusConexao();
-    setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); atualizarCartaoAddItemReq(); }, 500);
+    setTimeout(() => aposSalvarMaterialNovo(dadosComuns.idFluig), 500);
   } catch (e) {
     if (e.message === 'ITEM_PARECIDO' && e.itemParecido) {
       const p = e.itemParecido;
@@ -671,7 +671,7 @@ document.getElementById('formMovimento').addEventListener('submit', async (evt) 
         limparFoto();
         await renderEstoque();
         await atualizarStatusConexao();
-        setTimeout(() => { fecharSheet('modalMovimento'); mostrarMensagem('msgMovimento', ''); definirModoFormMovimento(false); atualizarCartaoAddItemReq(); }, 500);
+        setTimeout(() => aposSalvarMaterialNovo(usarExistente ? p.idFluig : dadosComuns.idFluig), 500);
       } catch (e2) {
         mostrarMensagem('msgMovimento', e2.message, 'erro');
       }
@@ -767,15 +767,55 @@ document.getElementById('listaItensReqNova').addEventListener('click', (evt) => 
   renderItensNovaReq();
 });
 
+// ---- Cadastro de material novo a partir do "Adicionar item" ----
+let timerCadastroAuto = null;
+let cadastroMaterialAuto = false; // true quando o cartão abriu sozinho (pode fechar sozinho se o código passar a existir)
+function cadastroAberto() { return !document.getElementById('modalMovimento').classList.contains('oculta'); }
+async function abrirCadastroMaterialAddItem(automatico) {
+  const codigo = document.getElementById('addReqIdFluig').value.trim();
+  definirModoFormMovimento(false);
+  document.getElementById('tituloFormMovimento').textContent = 'Cadastrar material';
+  // Só leva o código digitado se ele ainda não existe (senão viraria uma entrada no item que já existe).
+  const jaExiste = codigo ? !!(await BramDB.get('estoque', codigo)) : false;
+  if (!cadastroAberto() || !automatico) document.getElementById('movIdFluig').value = jaExiste ? '' : codigo;
+  document.body.classList.add('cad-lateral');
+  cadastroMaterialAuto = !!automatico;
+  abrirSheet('modalMovimento');
+  if (!automatico) setTimeout(() => document.getElementById((jaExiste || !codigo) ? 'movIdFluig' : 'movNome').focus(), 80);
+}
+function fecharCadastroMaterial() {
+  document.body.classList.remove('cad-lateral');
+  cadastroMaterialAuto = false;
+  fecharSheet('modalMovimento');
+}
+// Fecha o cartão que abriu sozinho, se o código digitado agora existe (ou foi apagado).
+function fecharCadastroAuto() {
+  if (cadastroMaterialAuto && cadastroAberto()) {
+    document.getElementById('formMovimento').reset();
+    fecharCadastroMaterial();
+  }
+}
+// Depois de salvar o material novo: já deixa ele selecionado no "Adicionar item".
+function aposSalvarMaterialNovo(idFluigSalvo) {
+  const naTelaAddItem = document.body.classList.contains('cad-lateral') || !document.getElementById('modalAddItemReq').classList.contains('oculta');
+  fecharCadastroMaterial();
+  mostrarMensagem('msgMovimento', '');
+  definirModoFormMovimento(false);
+  if (naTelaAddItem && idFluigSalvo && !document.getElementById('modalAddItemReq').classList.contains('oculta')) {
+    document.getElementById('addReqIdFluig').value = idFluigSalvo;
+  }
+  atualizarCartaoAddItemReq();
+}
+
 async function atualizarCartaoAddItemReq() {
   const campo = document.getElementById('addReqIdFluig');
   const cartao = document.getElementById('cartaoAddItemReq');
-  const link = document.getElementById('linkCadastrarAddReq');
   const codigo = campo.value.trim();
+  clearTimeout(timerCadastroAuto);
   if (!codigo) {
     cartao.className = 'cartao-add-req cartao-add-req--vazio';
     cartao.textContent = 'Digite o ID Fluig. A descrição e a foto do item aparecem aqui.';
-    link.classList.add('oculto-flex');
+    fecharCadastroAuto();
     return;
   }
   const item = await BramDB.get('estoque', codigo);
@@ -783,10 +823,15 @@ async function atualizarCartaoAddItemReq() {
   if (!item) {
     cartao.className = 'cartao-add-req cartao-add-req--vazio cartao-add-req--falta';
     cartao.textContent = 'Item não encontrado no estoque.';
-    link.classList.remove('oculto-flex');
+    // No computador, se o código não existe, o cartão "Cadastrar material" abre sozinho (após uma pausa na digitação).
+    if (codigo.length >= 3 && window.matchMedia('(min-width: 860px)').matches) {
+      timerCadastroAuto = setTimeout(() => {
+        if (document.getElementById('addReqIdFluig').value.trim() === codigo && !(cadastroAberto())) abrirCadastroMaterialAddItem(true);
+      }, 900);
+    }
     return;
   }
-  link.classList.add('oculto-flex');
+  fecharCadastroAuto();
   cartao.className = 'cartao-add-req';
   const foto = item.foto
     ? `<img class="foto-grande-req" src="${item.foto}" alt="Foto do item" />`
@@ -838,7 +883,7 @@ function abrirAddItemReq(alvoId) {
   abrirSheet('modalAddItemReq');
   setTimeout(() => document.getElementById('addReqIdFluig').focus(), 80);
 }
-function fecharAddItemReq() { fecharSheet('modalAddItemReq'); }
+function fecharAddItemReq() { clearTimeout(timerCadastroAuto); if (cadastroAberto() && document.body.classList.contains('cad-lateral')) { document.getElementById('formMovimento').reset(); fecharCadastroMaterial(); } fecharSheet('modalAddItemReq'); }
 
 document.getElementById('btnAbrirAddItemNovaReq').addEventListener('click', () => abrirAddItemReq());
 document.getElementById('btnVoltarAddItemReq').addEventListener('click', fecharAddItemReq);
@@ -867,12 +912,7 @@ document.getElementById('btnAddReqOutro').addEventListener('click', async () => 
     document.getElementById('addReqIdFluig').focus();
   }
 });
-document.getElementById('linkCadastrarAddReq').addEventListener('click', () => {
-  definirModoFormMovimento(false);
-  document.getElementById('movIdFluig').value = document.getElementById('addReqIdFluig').value.trim();
-  document.getElementById('movNome').value = '';
-  abrirSheet('modalMovimento');
-});
+document.getElementById('btnCadastrarMaterialAddReq').addEventListener('click', () => abrirCadastroMaterialAddItem(false));
 
 document.getElementById('formRequisicao').addEventListener('submit', async (evt) => {
   evt.preventDefault();

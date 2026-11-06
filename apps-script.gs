@@ -42,6 +42,18 @@
 
 const ID_PLANILHA = '1dJd4YHwKdbhysI5yp2FYVNb28hJX_ahYx9NEN2PPGp0'; // já preenchido com o ID da sua planilha
 
+// A aba de acessos pode se chamar "Acessos" ou "Acesso" (e variações de maiúsculas).
+function achaAbaAcessos_(planilha) {
+  const nomes = ['acessos', 'acesso'];
+  const abas = planilha.getSheets();
+  for (let n = 0; n < nomes.length; n++) {
+    for (let i = 0; i < abas.length; i++) {
+      if (abas[i].getName().trim().toLowerCase() === nomes[n]) return abas[i];
+    }
+  }
+  return null;
+}
+
 function pegarPlanilha_() {
   return ID_PLANILHA ? SpreadsheetApp.openById(ID_PLANILHA) : SpreadsheetApp.getActiveSpreadsheet();
 }
@@ -487,6 +499,45 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Diagnóstico: mostra qual planilha o script abre e o que ele enxerga nela.
+  // Não mostra códigos de acesso nem dados do estoque.
+  if (acao === 'diagnostico') {
+    let saida;
+    try {
+      const planilha = pegarPlanilha_();
+      const abas = planilha.getSheets().map((x) => x.getName());
+      const acessos = achaAbaAcessos_(planilha);
+      saida = {
+        ok: true,
+        planilha: planilha.getName(),
+        idUsado: planilha.getId(),
+        abas: abas,
+        cabecalhoAcessos: acessos ? acessos.getRange(1, 1, 1, Math.max(acessos.getLastColumn(), 1)).getValues()[0].map((v) => '[' + v + ']') : 'ABA ACESSOS NAO ENCONTRADA',
+        linhasAcessos: acessos ? acessos.getLastRow() - 1 : 0,
+        versaoDoScript: 'v-acesso-tolerante',
+      };
+      if (acessos) {
+        const vals = acessos.getDataRange().getValues();
+        const cab = vals[0].map((v) => String(v).trim());
+        const cC = cab.indexOf('Codigo'), cA = cab.indexOf('Admin'), cN = cab.indexOf('Nome');
+        const cod = String(e.parameter.codigo || '').trim();
+        saida.colunas = { nome: cN, codigo: cC, admin: cA };
+        saida.codigoInformadoTamanho = cod.length;
+        saida.linhas = vals.slice(1).map((l) => ({
+          nome: '[' + l[cN] + ']',
+          tipoCodigo: typeof l[cC],
+          tamanhoCodigo: String(l[cC]).length,
+          confere: cod ? mesmoCodigoAcesso_(l[cC], cod) : null,
+          admin: '[' + l[cA] + ']',
+        }));
+        saida.ehAdmin = cod ? ehAdmin_(cod) : null;
+      }
+    } catch (erro) {
+      saida = { ok: false, erro: String(erro) };
+    }
+    return ContentService.createTextOutput(JSON.stringify(saida)).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (acao === 'validarAcesso') {
     const codigo = String(e.parameter.codigo || '').trim();
     const resultado = validarCodigoAcesso_(codigo);
@@ -506,7 +557,7 @@ function validarCodigoAcesso_(codigo) {
   if (!codigo) return { ok: false };
   try {
     const planilha = pegarPlanilha_();
-    const aba = planilha.getSheetByName('Acessos');
+    const aba = achaAbaAcessos_(planilha);
     if (!aba) {
       // Aba ainda não existe — sem controle de acesso configurado, libera geral.
       return { ok: true, nome: '' };
@@ -518,7 +569,7 @@ function validarCodigoAcesso_(codigo) {
     if (colCodigo === -1) return { ok: true, nome: '' };
 
     for (let i = 1; i < valores.length; i++) {
-      if (String(valores[i][colCodigo]).trim() === codigo) {
+      if (mesmoCodigoAcesso_(valores[i][colCodigo], codigo)) {
         return { ok: true, nome: colNome !== -1 ? String(valores[i][colNome]) : '' };
       }
     }
@@ -535,10 +586,21 @@ function validarCodigoAcesso_(codigo) {
 // chamada "Admin" e escreva "Sim" na linha de cada pessoa que pode editar
 // as listas (locais, solicitantes, marcas). O código de acesso dela é o
 // mesmo que ela já usa para entrar no app.
+// Compara códigos de acesso. Se a planilha guardou "0410" como número (410),
+// ainda assim reconhece como o mesmo código.
+function mesmoCodigoAcesso_(daPlanilha, digitado) {
+  const a = String(daPlanilha === null || daPlanilha === undefined ? '' : daPlanilha).trim();
+  const b = String(digitado || '').trim();
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (/^\d+$/.test(a) && /^\d+$/.test(b)) return Number(a) === Number(b);
+  return false;
+}
+
 function ehAdmin_(codigo) {
   if (!codigo) return false;
   try {
-    const aba = pegarPlanilha_().getSheetByName('Acessos');
+    const aba = achaAbaAcessos_(pegarPlanilha_());
     if (!aba) return false;
     const valores = aba.getDataRange().getValues();
     const cabecalho = valores[0].map((v) => String(v).trim());
@@ -546,7 +608,7 @@ function ehAdmin_(codigo) {
     const colAdmin = cabecalho.indexOf('Admin');
     if (colCodigo === -1 || colAdmin === -1) return false;
     for (let i = 1; i < valores.length; i++) {
-      if (String(valores[i][colCodigo]).trim() === codigo) {
+      if (mesmoCodigoAcesso_(valores[i][colCodigo], codigo)) {
         return /^(sim|s|x|true|1)$/i.test(String(valores[i][colAdmin]).trim());
       }
     }
@@ -560,7 +622,7 @@ function ehAdmin_(codigo) {
 // ---------- Pessoas com acesso (aba "Acessos": Nome | Codigo | Admin) ----------
 function abaAcessos_() {
   const planilha = pegarPlanilha_();
-  let aba = planilha.getSheetByName('Acessos');
+  let aba = achaAbaAcessos_(planilha);
   if (!aba) { aba = planilha.insertSheet('Acessos'); aba.appendRow(['Nome', 'Codigo', 'Admin']); }
   const cab = aba.getRange(1, 1, 1, Math.max(aba.getLastColumn(), 1)).getValues()[0].map((v) => String(v).trim());
   if (cab.indexOf('Nome') === -1) aba.getRange(1, cab.length + 1).setValue('Nome');
