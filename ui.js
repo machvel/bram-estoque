@@ -1603,6 +1603,11 @@ function escHtml(t) { return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;
 // Reconstrói os campos do app com as listas do administrador.
 // Se uma lista ainda está vazia, o app continua usando as opções que já vinham nele.
 async function aplicarListas() {
+  // Nunca deixa um problema nas listas derrubar a sincronização ou a abertura do app.
+  try { await aplicarListasInterno(); } catch (e) { console.warn('Listas do administrador indisponíveis:', e); }
+}
+
+async function aplicarListasInterno() {
   const locais = await BramApp.obterLista('locais');
   if (locais.length) {
     ['movLocal', 'filtroEstoqueLocal', 'modalLocalInput'].forEach((id) => {
